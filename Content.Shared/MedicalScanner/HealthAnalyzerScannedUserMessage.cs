@@ -1,4 +1,9 @@
 using Content.Shared.Chemistry.Reagent;
+using Content.Shared.Damage.Prototypes;
+using Content.Shared.FixedPoint;
+using Content.Shared.Humanoid.Prototypes;
+using Content.Shared.Mobs;
+using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization;
 
 namespace Content.Shared.MedicalScanner;
@@ -29,8 +34,12 @@ public struct HealthAnalyzerUiState
     public bool? ScanMode;
     public bool? Bleeding;
     public bool? Unrevivable;
-    // FIsh edit start - передача реагентов в интерфейс анализатора
+    // FIsh edit start - передача диагностического снимка в интерфейс анализатора
     public List<ReagentQuantity> Reagents = [];
+    public string? PatientName;
+    public ProtoId<SpeciesPrototype>? Species;
+    public MobState? MobState;
+    public Dictionary<ProtoId<DamageTypePrototype>, FixedPoint2> Damage = [];
     // FIsh edit end
     // Sunrise-Edit start - add hunger and thirst levels to UI state
     public float? HungerLevel;
@@ -48,7 +57,11 @@ public struct HealthAnalyzerUiState
         bool? unrevivable,
         float? hungerLevel = null,
         float? thirstLevel = null,
-        List<ReagentQuantity>? reagents = null)
+        List<ReagentQuantity>? reagents = null,
+        string? patientName = null,
+        ProtoId<SpeciesPrototype>? species = null,
+        MobState? mobState = null,
+        Dictionary<ProtoId<DamageTypePrototype>, FixedPoint2>? damage = null)
     {
         TargetEntity = targetEntity;
         Temperature = temperature;
@@ -56,8 +69,12 @@ public struct HealthAnalyzerUiState
         ScanMode = scanMode;
         Bleeding = bleeding;
         Unrevivable = unrevivable;
-        // FIsh edit start - сохранение реагентов в состоянии интерфейса
+        // FIsh edit start - сохранение диагностического снимка в состоянии интерфейса
         Reagents = reagents ?? [];
+        PatientName = patientName;
+        Species = species;
+        MobState = mobState;
+        Damage = damage ?? [];
         // FIsh edit end
         // Sunrise-Edit start - assign hunger and thirst
         HungerLevel = hungerLevel;

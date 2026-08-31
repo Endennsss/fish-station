@@ -10,6 +10,8 @@ namespace Content.Client.HealthAnalyzer.UI
         [ViewVariables]
         private HealthAnalyzerWindow? _window;
 
+        private HealthAnalyzerScannedUserMessage? _latestMessage;
+
         public HealthAnalyzerBoundUserInterface(EntityUid owner, Enum uiKey) : base(owner, uiKey)
         {
         }
@@ -21,17 +23,18 @@ namespace Content.Client.HealthAnalyzer.UI
             _window = this.CreateWindow<HealthAnalyzerWindow>();
 
             _window.Title = EntMan.GetComponent<MetaDataComponent>(Owner).EntityName;
+
+            if (_latestMessage != null)
+                _window.Populate(_latestMessage);
         }
 
         protected override void ReceiveMessage(BoundUserInterfaceMessage message)
         {
-            if (_window == null)
-                return;
-
             if (message is not HealthAnalyzerScannedUserMessage cast)
                 return;
 
-            _window.Populate(cast);
+            _latestMessage = cast;
+            _window?.Populate(cast);
         }
     }
 }

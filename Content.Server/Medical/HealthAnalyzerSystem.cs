@@ -1,16 +1,25 @@
+using Content.Server.Body.Systems;
 using Content.Server.Medical.Components;
+using Content.Shared._Sunrise.Research.Artifact;
 using Content.Shared.Body.Components;
 using Content.Shared.Chemistry.EntitySystems;
 using Content.Shared.Chemistry.Reagent;
 using Content.Shared.Damage.Components;
+using Content.Shared.Damage.Prototypes;
+using Content.Shared.Damage.Systems;
 using Content.Shared.DoAfter;
+using Content.Shared.FixedPoint;
+using Content.Shared.Humanoid;
+using Content.Shared.Humanoid.Prototypes;
 using Content.Shared.IdentityManagement;
 using Content.Shared.Interaction;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Item.ItemToggle;
 using Content.Shared.Item.ItemToggle.Components;
 using Content.Shared.MedicalScanner;
+using Content.Shared.Mobs;
 using Content.Shared.Mobs.Components;
+using Content.Shared.Nutrition.Components;
 using Content.Shared.Popups;
 using Content.Shared.PowerCell;
 using Content.Shared.Temperature.Components;
@@ -18,10 +27,8 @@ using Content.Shared.Traits.Assorted;
 using Robust.Server.GameObjects;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Containers;
+using Robust.Shared.Prototypes;
 using Robust.Shared.Timing;
-using Content.Server.Body.Systems;
-using Content.Shared.Nutrition.Components;
-using Content.Shared._Sunrise.Research.Artifact;
 
 namespace Content.Server.Medical;
 
@@ -37,6 +44,7 @@ public sealed class HealthAnalyzerSystem : EntitySystem
     [Dependency] private readonly TransformSystem _transformSystem = default!;
     [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
     [Dependency] private readonly BloodstreamSystem _bloodstreamSystem = default!;
+    [Dependency] private readonly DamageableSystem _damageable = default!;
 
     public override void Initialize()
     {
@@ -227,7 +235,7 @@ public sealed class HealthAnalyzerSystem : EntitySystem
     /// <returns></returns>
     public HealthAnalyzerUiState GetHealthAnalyzerUiState(EntityUid? target)
     {
-        if (!target.HasValue || !HasComp<DamageableComponent>(target))
+        if (!target.HasValue || !TryComp<DamageableComponent>(target, out var damageable))
             return new HealthAnalyzerUiState();
 
         var entity = target.Value;
@@ -274,8 +282,8 @@ public sealed class HealthAnalyzerSystem : EntitySystem
 
         // Sunrise-Edit start - collect hunger, thirst, and raise analyze event
         // Collect hunger and thirst data as percentages
-        float hungerLevel = -1;
-        float thirstLevel = -1;
+        float? hungerLevel = null;
+        float? thirstLevel = null;
 
         if (TryComp<HungerComponent>(entity, out var hunger))
         {
@@ -292,6 +300,21 @@ public sealed class HealthAnalyzerSystem : EntitySystem
         RaiseLocalEvent(entity, new EntityAnalyzedEvent());
         // Sunrise-Edit end
 
+        // FIsh edit start - единый снимок пациента не зависит от клиентского PVS
+        var patientName = Identity.Name(entity, EntityManager);
+        ProtoId<SpeciesPrototype>? species = null;
+        MobState? mobState = null;
+
+        if (TryComp<HumanoidProfileComponent>(entity, out var humanoid))
+            species = humanoid.Species;
+
+        if (TryComp<MobStateComponent>(entity, out var mobStateComponent))
+            mobState = mobStateComponent.CurrentState;
+
+        var damage = new Dictionary<ProtoId<DamageTypePrototype>, FixedPoint2>(
+            _damageable.GetPositiveDamage((entity, damageable)).DamageDict);
+        // FIsh edit end
+
         // Sunrise-Edit start - return state with hunger and thirst
         return new HealthAnalyzerUiState(
             GetNetEntity(entity),
@@ -302,7 +325,11 @@ public sealed class HealthAnalyzerSystem : EntitySystem
             unrevivable,
             hungerLevel,
             thirstLevel,
-            reagents
+            reagents,
+            patientName,
+            species,
+            mobState,
+            damage
         );
         // Sunrise-Edit end
     }
