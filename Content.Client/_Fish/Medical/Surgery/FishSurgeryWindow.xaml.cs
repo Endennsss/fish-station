@@ -27,13 +27,14 @@ public sealed partial class FishSurgeryWindow : FancyWindow
     /// <summary>Requests a part's operations without performing a surgical step.</summary>
     public event Action<EntityUid>? PartSelected;
 
-    /// <summary>Refreshes conditions periodically while the window is open.</summary>
-    public event Action? RefreshRequested;
-
     /// <summary>Updates the displayed server-backed action progress each frame.</summary>
     public event Action? ProgressRequested;
 
-    private float _refreshElapsed;
+    /// <summary>Перестраивает состояние этапов после событийной инвалидации.</summary>
+    public event Action? RefreshRequested;
+
+    private bool _appearanceRefreshRequested;
+    private bool _refreshRequested;
     private string? _partName;
     private string? _operationName;
     private EntityUid? _step;
@@ -68,7 +69,18 @@ public sealed partial class FishSurgeryWindow : FancyWindow
         SetLabelText(PatientName, name);
         PatientName.ToolTip = name;
         BodyDiagram.Patient = patient;
-        BodyDiagram.RefreshAppearance();
+    }
+
+    /// <summary>Обновляет кэш внешности после клиентского AppearanceChangeEvent.</summary>
+    public void RefreshPatientAppearance()
+    {
+        _appearanceRefreshRequested = true;
+    }
+
+    /// <summary>Объединяет несколько событий движения в одно обновление следующего UI-кадра.</summary>
+    public void RequestRefresh()
+    {
+        _refreshRequested = true;
     }
 
     /// <summary>Clears the diagram before the BUI rebuilds its list of parts.</summary>
@@ -182,10 +194,6 @@ public sealed partial class FishSurgeryWindow : FancyWindow
         _stepProgress.Clear();
         _activeProgress = null;
     }
-
-    /// <summary>Сохраняет завершённый этап до выбора другой операции.</summary>
-    public bool KeepStepCompleted(SurgeryStepButton step, bool completed)
-        => completed || _stepStates.TryGetValue(step, out var previous) && previous.Completed;
 
     /// <summary>Animates actual step transitions without hiding rows or changing their layout.</summary>
     public void SetStepPresentation(SurgeryStepButton step, bool current, bool completed)
@@ -377,13 +385,17 @@ public sealed partial class FishSurgeryWindow : FancyWindow
             return;
 
         ProgressRequested?.Invoke();
-        _refreshElapsed += args.DeltaSeconds;
-        if (_refreshElapsed < 0.2f)
-            return;
+        if (_appearanceRefreshRequested)
+        {
+            _appearanceRefreshRequested = false;
+            BodyDiagram.RefreshAppearance();
+        }
 
-        _refreshElapsed = 0f;
-        BodyDiagram.RefreshAppearance();
-        RefreshRequested?.Invoke();
+        if (_refreshRequested)
+        {
+            _refreshRequested = false;
+            RefreshRequested?.Invoke();
+        }
     }
 
     protected override void Dispose(bool disposing)
@@ -391,8 +403,8 @@ public sealed partial class FishSurgeryWindow : FancyWindow
         if (disposing)
         {
             _confirmAction = null;
-            RefreshRequested = null;
             ProgressRequested = null;
+            RefreshRequested = null;
             _stepStates.Clear();
             _stepProgress.Clear();
             _activeProgress = null;

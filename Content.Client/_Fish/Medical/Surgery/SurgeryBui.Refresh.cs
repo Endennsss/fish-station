@@ -93,6 +93,20 @@ public sealed partial class SurgeryBui
             _window.OpenCentered();
     }
 
+    /// <summary>Немедленно закрывает подтверждение, если выбранная операция исчезла.</summary>
+    internal void InvalidateFishSurgery(EntityUid surgery)
+    {
+        if (_surgery is not { Ent: var selected } || selected != surgery)
+            return;
+
+        _surgery = null;
+        _previousSurgeries.Clear();
+        ResetFishSessionState();
+
+        if (State is SurgeryBuiState state)
+            ApplyFishState(state);
+    }
+
     /// <summary>Completion changes update row styling without rebuilding the operation list.</summary>
     internal static bool HaveSameFishChoices(
         IReadOnlyList<(EntProtoId, string, bool)> previous,

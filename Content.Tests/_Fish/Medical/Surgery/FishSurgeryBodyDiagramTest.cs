@@ -77,12 +77,43 @@ public sealed class FishSurgeryBodyDiagramTest
     public void SurgicalProgressUsesActualDuration(double elapsed, float duration, float expected)
     {
         var patient = new EntityUid(2);
+        var part = new EntityUid(3);
         var args = new DoAfterArgs(new Mock<IEntityManager>().Object, new EntityUid(1), duration,
-            new SurgeryDoAfterEvent("TestSurgery", "TestStep", 1), patient);
+            new SurgeryDoAfterEvent("TestSurgery", "TestStep", 1), patient, part);
         var action = new DoAfter(1, args, TimeSpan.FromSeconds(10));
         Assert.That(SurgeryBui.GetFishProgress(action, TimeSpan.FromSeconds(10 + elapsed)), Is.EqualTo(expected));
-        Assert.That(SurgeryBui.IsFishSurgeryAction(action, patient), Is.True);
-        Assert.That(SurgeryBui.IsFishSurgeryAction(action, new EntityUid(3)), Is.False);
+        Assert.That(SurgeryBui.IsFishSurgeryAction(action, patient, part, "TestSurgery", "TestStep"), Is.True);
+        Assert.That(SurgeryBui.IsFishSurgeryAction(action, patient, new EntityUid(4), "TestSurgery", "TestStep"), Is.False);
+    }
+
+    [Test]
+    public void SelectedStepUsesMatchingSurgeryAction()
+    {
+        var entities = new Mock<IEntityManager>().Object;
+        var user = new EntityUid(1);
+        var patient = new EntityUid(2);
+        var selectedPart = new EntityUid(3);
+        var otherPart = new EntityUid(4);
+        var otherPartAction = CreateAction(1, otherPart, "TestSurgery", "SelectedStep");
+        var otherStepAction = CreateAction(2, selectedPart, "TestSurgery", "OtherStep");
+        var otherSurgeryAction = CreateAction(3, selectedPart, "OtherSurgery", "SelectedStep");
+        var selectedAction = CreateAction(4, selectedPart, "TestSurgery", "SelectedStep");
+
+        var result = SurgeryBui.FindFishSurgeryAction(
+            new[] { otherPartAction, otherStepAction, otherSurgeryAction, selectedAction },
+            patient,
+            selectedPart,
+            "TestSurgery",
+            "SelectedStep");
+
+        Assert.That(result, Is.SameAs(selectedAction));
+
+        DoAfter CreateAction(ushort index, EntityUid part, EntProtoId surgery, EntProtoId step)
+        {
+            var args = new DoAfterArgs(entities, user, 10f,
+                new SurgeryDoAfterEvent(surgery, step, 1f), patient, part);
+            return new DoAfter(index, args, TimeSpan.FromSeconds(index));
+        }
     }
 
     [Test]

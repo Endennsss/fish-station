@@ -1,11 +1,13 @@
-using System.Numerics;
+using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using Content.Client._Fish.Medical.Surgery;
 using Content.Client._Starlight.Medical.Surgery;
 using Content.Shared.Body;
 using Content.Shared.Humanoid;
 using Content.Shared.Starlight.Medical.Surgery;
+using Content.Shared.Starlight.Medical.Surgery.Effects.Step;
 using Content.Shared.Starlight.Medical.Surgery.Steps.Parts;
 using Robust.Client.GameObjects;
 using Robust.Client.Graphics;
@@ -173,8 +175,7 @@ public sealed class FishSurgeryWindowTest
             window.Steps.Visible = true;
             window.SetStepPresentation(current, false, true);
             window.SetStepPresentation(future, true, false);
-            Assert.That(window.KeepStepCompleted(current, false), Is.True,
-                "A stale snapshot must not roll a completed step back.");
+            window.SetStepPresentation(current, false, false);
         });
         await client.WaitAssertion(() =>
         {
@@ -186,7 +187,7 @@ public sealed class FishSurgeryWindowTest
         await pair.RunTicksSync(60);
         await client.WaitPost(() =>
         {
-            window.SetStepPresentation(current, false, true);
+            window.SetStepPresentation(current, false, false);
             window.SetStepPresentation(future, true, false);
         });
         await client.WaitAssertion(() =>
@@ -311,6 +312,200 @@ public sealed class FishSurgeryWindowTest
         {
             window.Dispose();
             client.EntMan.DeleteEntity(hand);
+        });
+        await pair.CleanReturnAsync();
+    }
+
+    /// <summary>Авторитетное состояние возвращает завершённый этап после серверного сброса.</summary>
+    [Test]
+    public async Task AuthoritativeRollbackRestoresCurrentStep()
+    {
+        await using var pair = await PoolManager.GetServerClient(new PoolSettings { Connected = true });
+        var client = pair.Client;
+        SurgeryBui bui = null;
+        FishSurgeryWindow window = null;
+        EntityUid patient = default;
+        EntityUid hand = default;
+        EntityUid surgery = default;
+        SurgeryProgressComponent progress = null;
+        HashSet<EntProtoId> completedSteps = null;
+        SurgeryStepButton firstStep = null;
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var update = typeof(SurgeryBui).GetMethod("UpdateState", flags)!;
+        var stateProperty = typeof(BoundUserInterface).GetProperty("State", flags)!;
+
+        await client.WaitPost(() =>
+        {
+            patient = client.EntMan.SpawnEntity("AppearanceHuman", MapCoordinates.Nullspace);
+            var body = client.EntMan.GetComponent<BodyComponent>(patient);
+            hand = body.Organs!.ContainedEntities.First(uid =>
+                client.EntMan.GetComponent<MetaDataComponent>(uid).EntityPrototype?.ID == "OrganHumanHandLeft");
+            surgery = client.EntMan.SpawnEntity("SurgeryOpenIncision", MapCoordinates.Nullspace);
+            progress = client.EntMan.EnsureComponent<SurgeryProgressComponent>(hand);
+            completedSteps = (HashSet<EntProtoId>) typeof(SurgeryProgressComponent)
+                .GetField("CompletedSteps")!.GetValue(progress)!;
+            var netHand = client.EntMan.GetNetEntity(hand);
+            var state = new SurgeryBuiState
+            {
+                Choices = new() { [netHand] = new() { ("SurgeryOpenIncision", "", false) } },
+            };
+            bui = new SurgeryBui(patient, SurgeryUIKey.Key);
+            stateProperty.SetValue(bui, state);
+            update.Invoke(bui, new object[] { state });
+            typeof(SurgeryBui).GetMethod("OnPartPressed", flags)!
+                .Invoke(bui, new object[] { netHand, state.Choices[netHand] });
+            Entity<SurgeryComponent> operation = (surgery, client.EntMan.GetComponent<SurgeryComponent>(surgery));
+            typeof(SurgeryBui).GetMethod("OnSurgeryPressed", flags)!
+                .Invoke(bui, new object[] { operation, netHand, (EntProtoId) "SurgeryOpenIncision" });
+            window = (FishSurgeryWindow) typeof(SurgeryBui).GetField("_window", flags)!.GetValue(bui)!;
+            firstStep = window.Steps.Children.OfType<SurgeryStepButton>().First();
+
+            completedSteps.Add($"SurgeryOpenIncision:{client.EntMan.GetComponent<MetaDataComponent>(firstStep.Step).EntityPrototype!.ID}");
+            bui.Update();
+        });
+        await client.WaitAssertion(() =>
+            Assert.That(firstStep.Button.HasStyleClass("FishSurgeryDone"), Is.True));
+
+        await client.WaitPost(() =>
+        {
+            completedSteps.Clear();
+            bui.Update();
+        });
+        await client.WaitAssertion(() =>
+        {
+            Assert.That(firstStep.Button.HasStyleClass("FishSurgeryDone"), Is.False);
+            Assert.That(firstStep.Button.HasStyleClass("FishSurgeryNext"), Is.True);
+        });
+
+        await client.WaitPost(() =>
+        {
+            bui.Dispose();
+            client.EntMan.DeleteEntity(patient);
+            client.EntMan.DeleteEntity(surgery);
+        });
+        await pair.CleanReturnAsync();
+    }
+
+    /// <summary>Удаление выбранной операции сразу инвалидирует подтверждение опасного этапа.</summary>
+    [Test]
+    public async Task RemovedOperationInvalidatesConfirmation()
+    {
+        await using var pair = await PoolManager.GetServerClient(new PoolSettings { Connected = true });
+        var client = pair.Client;
+        SurgeryBui bui = null;
+        FishSurgeryWindow window = null;
+        EntityUid patient = default;
+        EntityUid surgery = default;
+        var confirmations = 0;
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var update = typeof(SurgeryBui).GetMethod("UpdateState", flags)!;
+        var stateProperty = typeof(BoundUserInterface).GetProperty("State", flags)!;
+
+        await client.WaitPost(() =>
+        {
+            patient = client.EntMan.SpawnEntity("AppearanceHuman", MapCoordinates.Nullspace);
+            var body = client.EntMan.GetComponent<BodyComponent>(patient);
+            var hand = body.Organs!.ContainedEntities.First(uid =>
+                client.EntMan.GetComponent<MetaDataComponent>(uid).EntityPrototype?.ID == "OrganHumanHandLeft");
+            surgery = client.EntMan.SpawnEntity("SurgeryOpenIncision", MapCoordinates.Nullspace);
+            var netHand = client.EntMan.GetNetEntity(hand);
+            var state = new SurgeryBuiState
+            {
+                Choices = new() { [netHand] = new() { ("SurgeryOpenIncision", "", false) } },
+            };
+            bui = new SurgeryBui(patient, SurgeryUIKey.Key);
+            stateProperty.SetValue(bui, state);
+            update.Invoke(bui, new object[] { state });
+            typeof(SurgeryBui).GetMethod("OnPartPressed", flags)!
+                .Invoke(bui, new object[] { netHand, state.Choices[netHand] });
+            Entity<SurgeryComponent> operation = (surgery, client.EntMan.GetComponent<SurgeryComponent>(surgery));
+            typeof(SurgeryBui).GetMethod("OnSurgeryPressed", flags)!
+                .Invoke(bui, new object[] { operation, netHand, (EntProtoId) "SurgeryOpenIncision" });
+            window = (FishSurgeryWindow) typeof(SurgeryBui).GetField("_window", flags)!.GetValue(bui)!;
+            var step = window.Steps.Children.OfType<SurgeryStepButton>().First();
+            window.RequestConfirmation(step.Step, "Dangerous step", () => confirmations++);
+
+            bui.InvalidateFishSurgery(surgery);
+            window.ConfirmPendingAction();
+        });
+        await client.WaitAssertion(() =>
+        {
+            Assert.That(window.FindControl<PanelContainer>("ConfirmationPanel").Visible, Is.False);
+            Assert.That(confirmations, Is.Zero);
+            Assert.That(typeof(SurgeryBui).GetField("_surgery", flags)!.GetValue(bui), Is.Null);
+        });
+
+        await client.WaitPost(() =>
+        {
+            bui.Dispose();
+            client.EntMan.DeleteEntity(patient);
+            client.EntMan.DeleteEntity(surgery);
+        });
+        await pair.CleanReturnAsync();
+    }
+
+    /// <summary>Повторное открытие BUI не использует прогресс и подтверждение прошлой локальной сессии.</summary>
+    [Test]
+    public async Task ReopenClearsTransientActionState()
+    {
+        await using var pair = await PoolManager.GetServerClient(new PoolSettings { Connected = true });
+        var client = pair.Client;
+        SurgeryBui bui = null;
+        FishSurgeryWindow window = null;
+        EntityUid patient = default;
+        EntityUid surgery = default;
+        ProgressBar progress = null;
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var update = typeof(SurgeryBui).GetMethod("UpdateState", flags)!;
+        var open = typeof(SurgeryBui).GetMethod("Open", flags)!;
+        var stateProperty = typeof(BoundUserInterface).GetProperty("State", flags)!;
+
+        await client.WaitPost(() =>
+        {
+            patient = client.EntMan.SpawnEntity("AppearanceHuman", MapCoordinates.Nullspace);
+            var body = client.EntMan.GetComponent<BodyComponent>(patient);
+            var hand = body.Organs!.ContainedEntities.First(uid =>
+                client.EntMan.GetComponent<MetaDataComponent>(uid).EntityPrototype?.ID == "OrganHumanHandLeft");
+            surgery = client.EntMan.SpawnEntity("SurgeryOpenIncision", MapCoordinates.Nullspace);
+            var netHand = client.EntMan.GetNetEntity(hand);
+            var state = new SurgeryBuiState
+            {
+                Choices = new() { [netHand] = new() { ("SurgeryOpenIncision", "", false) } },
+            };
+            bui = new SurgeryBui(patient, SurgeryUIKey.Key);
+            stateProperty.SetValue(bui, state);
+            open.Invoke(bui, null);
+            typeof(SurgeryBui).GetMethod("OnPartPressed", flags)!
+                .Invoke(bui, new object[] { netHand, state.Choices[netHand] });
+            Entity<SurgeryComponent> operation = (surgery, client.EntMan.GetComponent<SurgeryComponent>(surgery));
+            typeof(SurgeryBui).GetMethod("OnSurgeryPressed", flags)!
+                .Invoke(bui, new object[] { operation, netHand, (EntProtoId) "SurgeryOpenIncision" });
+            window = (FishSurgeryWindow) typeof(SurgeryBui).GetField("_window", flags)!.GetValue(bui)!;
+            var step = window.Steps.Children.OfType<SurgeryStepButton>().First();
+            progress = step.Button.Children.OfType<ProgressBar>().Single();
+            window.SetActionProgress(step.Step, "Old action", 0.75f);
+            window.RequestConfirmation(step.Step, "Dangerous step", () => { });
+            typeof(SurgeryBui).GetField("_fishRequestUntil", flags)!
+                .SetValue(bui, TimeSpan.FromHours(1));
+            typeof(SurgeryBui).GetField("_fishProgressKey", flags)!
+                .SetValue(bui, ((ushort) 7, false, false));
+
+            bui.Close();
+            open.Invoke(bui, null);
+        });
+        await client.WaitAssertion(() =>
+        {
+            Assert.That(progress.Visible, Is.False);
+            Assert.That(window.FindControl<PanelContainer>("ConfirmationPanel").Visible, Is.False);
+            Assert.That(typeof(SurgeryBui).GetField("_fishPreviousActionId", flags)!.GetValue(bui), Is.Null);
+            Assert.That(typeof(SurgeryBui).GetField("_fishProgressKey", flags)!.GetValue(bui), Is.Null);
+        });
+
+        await client.WaitPost(() =>
+        {
+            bui.Dispose();
+            client.EntMan.DeleteEntity(patient);
+            client.EntMan.DeleteEntity(surgery);
         });
         await pair.CleanReturnAsync();
     }

@@ -44,11 +44,23 @@ public sealed class FishSurgeryBodyDiagram : Control
     private readonly List<BodyLayer> _appearance = new();
     private readonly float[] _highlightAmounts = new float[Regions.Length];
     private string? _hoveredCategory;
+    private EntityUid? _patient;
 
     internal IReadOnlyList<BodyLayer> AppearanceLayers => _appearance;
 
     /// <summary>The actual patient whose anatomy, eyes and markings are displayed without equipment.</summary>
-    public EntityUid? Patient { get; set; }
+    public EntityUid? Patient
+    {
+        get => _patient;
+        set
+        {
+            if (_patient == value)
+                return;
+
+            _patient = value;
+            RefreshAppearance();
+        }
+    }
 
     /// <summary>Raised when an available body region is clicked.</summary>
     public event Action<EntityUid>? PartSelected;

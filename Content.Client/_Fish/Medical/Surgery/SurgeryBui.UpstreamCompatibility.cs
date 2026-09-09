@@ -52,9 +52,6 @@ public sealed partial class SurgeryBui
 
     private bool PrepareFishStepPresentation(SurgeryStepButton button, ref StepStatus status)
     {
-        if (_window?.KeepStepCompleted(button, status == StepStatus.Complete) == true)
-            status = StepStatus.Complete;
-
         return ShouldRefreshFishStep(button, status);
     }
 

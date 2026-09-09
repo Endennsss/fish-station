@@ -19,6 +19,7 @@ public sealed partial class SurgeryBui
     private TimeSpan _fishResultUntil;
     private SurgeryAction? _fishAction;
     private (ushort Id, bool Cancelled, bool Completed)? _fishProgressKey;
+    private FishActionContext? _fishRequestedAction;
 
     private void InitializeFishBodyDiagram(FishSurgeryWindow window)
     {
@@ -26,6 +27,31 @@ public sealed partial class SurgeryBui
         window.PartSelected += OnFishPartSelected;
         window.RefreshRequested += RefreshUI;
         window.ProgressRequested += UpdateFishProgress;
+    }
+
+    /// <summary>Сбрасывает transient-состояние между закрытием и повторным открытием BUI.</summary>
+    private void ResetFishSessionState()
+    {
+        _fishRequestUntil = TimeSpan.Zero;
+        _fishPreviousActionId = null;
+        _fishResultUntil = TimeSpan.Zero;
+        _fishAction = null;
+        _fishProgressKey = null;
+        _fishRequestedAction = null;
+        _window?.DismissConfirmation();
+        _window?.ClearActionProgress();
+    }
+
+    /// <summary>Обновляет схему только после события изменения внешности пациента.</summary>
+    internal void RefreshFishAppearance()
+    {
+        _window?.RefreshPatientAppearance();
+    }
+
+    /// <summary>Объединяет частые позиционные события в одно обновление интерфейса.</summary>
+    internal void QueueFishUiRefresh()
+    {
+        _window?.RequestRefresh();
     }
 
     private void OnFishPartSelected(EntityUid part)
@@ -136,6 +162,8 @@ public sealed partial class SurgeryBui
             return false;
 
         _fishPreviousActionId = FindFishAction()?.Id;
+        if (_entities.TryGetEntity(netPart, out var part))
+            _fishRequestedAction = new FishActionContext(part.Value, surgeryId, stepId);
         SendMessage(new SurgeryStepChosenBuiMsg { Part = netPart, Surgery = surgeryId, Step = stepId });
         _fishRequestUntil = _game.CurTime + TimeSpan.FromSeconds(2);
         RefreshUI();
@@ -170,22 +198,37 @@ public sealed partial class SurgeryBui
 
     private SurgeryAction? FindFishAction()
     {
-        if (!_entities.TryGetComponent<DoAfterComponent>(_player.LocalEntity, out var component))
+        if (!_entities.TryGetComponent<DoAfterComponent>(_player.LocalEntity, out var component) ||
+            !TryGetFishActionContext(out var context))
             return null;
 
-        SurgeryAction? latest = null;
-        foreach (var action in component.DoAfters.Values)
-        {
-            if (!IsFishSurgeryAction(action, Owner))
-                continue;
+        return FindFishSurgeryAction(
+            component.DoAfters.Values,
+            Owner,
+            context.Part,
+            context.Surgery,
+            context.Step);
+    }
 
-            if (!action.Cancelled && !action.Completed)
-                return action;
-            if (latest == null || action.StartTime > latest.StartTime)
-                latest = action;
+    private bool TryGetFishActionContext(out FishActionContext context)
+    {
+        if (_fishRequestedAction is { } requested)
+        {
+            context = requested;
+            return true;
         }
 
-        return latest;
+        if (_part is not { } part || _surgery is not { } surgery ||
+            !_entities.TryGetComponent<SurgeryComponent>(surgery.Ent, out var surgeryComponent) ||
+            _system.GetNextStep(Owner, part, surgery.Ent) is not { } next ||
+            next.Surgery.Owner != surgery.Ent)
+        {
+            context = default;
+            return false;
+        }
+
+        context = new FishActionContext(part, surgery.Proto, surgeryComponent.Steps[next.Step]);
+        return true;
     }
 
     private void UpdateFishProgress()
@@ -210,12 +253,16 @@ public sealed partial class SurgeryBui
                 _fishResultUntil = _game.CurTime + TimeSpan.FromSeconds(2);
                 _fishAction = null;
                 _fishProgressKey = null;
+                _fishRequestedAction = null;
             }
 
             if (_game.CurTime < _fishRequestUntil)
                 _window.SetActionProgress(null, _loc.GetString("fish-surgery-waiting"), 0);
             else if (_game.CurTime >= _fishResultUntil)
+            {
+                _fishRequestedAction = null;
                 _window.ClearActionProgress();
+            }
             return;
         }
 
@@ -253,9 +300,43 @@ public sealed partial class SurgeryBui
         return _entitySystem.TryGetSingleton(ev.Step, out var step) ? step : null;
     }
 
-    /// <summary>Matches only this patient's surgical actions, excluding unrelated do-afters.</summary>
-    internal static bool IsFishSurgeryAction(SurgeryAction action, EntityUid patient)
-        => action.Args.Event is SurgeryDoAfterEvent && action.Args.EventTarget == patient;
+    /// <summary>Находит последнее действие для точной комбинации пациента, части тела, операции и этапа.</summary>
+    internal static SurgeryAction? FindFishSurgeryAction(
+        IEnumerable<SurgeryAction> actions,
+        EntityUid patient,
+        EntityUid part,
+        EntProtoId surgery,
+        EntProtoId step)
+    {
+        SurgeryAction? latest = null;
+        foreach (var action in actions)
+        {
+            if (!IsFishSurgeryAction(action, patient, part, surgery, step))
+                continue;
+
+            if (!action.Cancelled && !action.Completed)
+                return action;
+            if (latest == null || action.StartTime > latest.StartTime)
+                latest = action;
+        }
+
+        return latest;
+    }
+
+    /// <summary>Исключает чужие хирургические действия над тем же пациентом.</summary>
+    internal static bool IsFishSurgeryAction(
+        SurgeryAction action,
+        EntityUid patient,
+        EntityUid part,
+        EntProtoId surgery,
+        EntProtoId step)
+    {
+        return action.Args.Event is SurgeryDoAfterEvent surgeryEvent &&
+            action.Args.EventTarget == patient &&
+            action.Args.Target == part &&
+            surgeryEvent.Surgery == surgery &&
+            surgeryEvent.Step == step;
+    }
 
     /// <summary>Freezes cancellation at its actual time and handles instantaneous steps.</summary>
     internal static float GetFishProgress(SurgeryAction action, TimeSpan now)
@@ -267,4 +348,6 @@ public sealed partial class SurgeryBui
         return delay <= TimeSpan.Zero ? 1f :
             Math.Clamp((float)(elapsed.TotalSeconds / delay.TotalSeconds), 0f, 1f);
     }
+
+    private readonly record struct FishActionContext(EntityUid Part, EntProtoId Surgery, EntProtoId Step);
 }

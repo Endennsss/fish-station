@@ -45,9 +45,11 @@ public sealed partial class SurgeryBui : BoundUserInterface // FIsh edit - вы�
         _hands = _entities.System<HandsSystem>();
         _entitySystem = _entities.System<StarlightEntitySystem>();
 
-        _hands.OnPlayerItemAdded += OnPlayerItemAdded;
+        _hands.OnPlayerItemAdded += OnPlayerHeldItemChanged;
+        _hands.OnPlayerItemRemoved += OnPlayerHeldItemChanged; // FIsh edit - обновляем доступность при смене инструмента
     }
-    private void OnPlayerItemAdded(string k1, EntityUid k2)
+
+    private void OnPlayerHeldItemChanged(string handId, EntityUid item)
     {
         if (!_game.IsFirstTimePredicted) return;
         RefreshUI();
@@ -55,6 +57,7 @@ public sealed partial class SurgeryBui : BoundUserInterface // FIsh edit - вы�
     protected override void Open()
     {
         base.Open();
+        ResetFishSessionState(); // FIsh edit - локальное состояние прошлого открытия не переносится в новую сессию
         UpdateState(State);
     }
 
@@ -486,6 +489,7 @@ public sealed partial class SurgeryBui : BoundUserInterface // FIsh edit - вы�
 
         if (disposing)
             _window?.Dispose();
-        _hands.OnPlayerItemAdded -= OnPlayerItemAdded;
+        _hands.OnPlayerItemAdded -= OnPlayerHeldItemChanged;
+        _hands.OnPlayerItemRemoved -= OnPlayerHeldItemChanged; // FIsh edit
     }
 }
