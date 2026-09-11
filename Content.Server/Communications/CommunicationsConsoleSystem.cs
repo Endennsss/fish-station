@@ -271,6 +271,7 @@ namespace Content.Server.Communications
                 return;
 
             TrySetPrimaryAlertLevel((uid, comp), message.Level, user); // Sunrise-Edit
+            UpdateCommsConsoleInterface(uid, comp); // Sunrise-Edit - отправляем состояние после установки force cooldown.
         }
 
         private void OnAnnounceMessage(EntityUid uid, CommunicationsConsoleComponent comp,

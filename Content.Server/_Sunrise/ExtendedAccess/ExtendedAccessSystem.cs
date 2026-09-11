@@ -63,18 +63,18 @@ public sealed class ExtendedAccessSystem : EntitySystem
             return;
         }
 
-        if (alert.AlertLevels.Levels.TryGetValue(ev.AlertLevel, out var detail)
-            && detail.ExtendedAccessOptions is { } options)
-        {
-            ScheduleAccessUpdate((ev.Station, alert), options, ev.Enabled);
-            return;
-        }
-
-        // Удалённый прототип уровня больше не содержит настроек, поэтому сбрасываем его доступы сразу.
+        // Отозванные временные доступы должны исчезать сразу, а не после задержки их выдачи.
         if (!ev.Enabled)
         {
             CancelUpdate(ev.Station);
             ApplyAccessUpdate((ev.Station, alert), announceAccessGrant: false);
+            return;
+        }
+
+        if (alert.AlertLevels.Levels.TryGetValue(ev.AlertLevel, out var detail)
+            && detail.ExtendedAccessOptions is { } options)
+        {
+            ScheduleAccessUpdate((ev.Station, alert), options);
         }
     }
 

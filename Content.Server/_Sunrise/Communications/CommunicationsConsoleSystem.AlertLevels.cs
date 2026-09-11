@@ -238,10 +238,6 @@ public sealed partial class CommunicationsConsoleSystem
         if (station is not { } stationUid || !TryComp<AlertLevelComponent>(stationUid, out var alert))
             return false;
 
-        // Привилегированная консоль обходит запрет выбора кода, но не общий cooldown ручных изменений.
-        if (console.Comp.ForceAlertLevelChanges)
-            StartAlertLevelCooldown(alert);
-
         _alertLevelSystem.SetLevel(
             stationUid,
             level,
@@ -249,6 +245,14 @@ public sealed partial class CommunicationsConsoleSystem
             true,
             console.Comp.ForceAlertLevelChanges,
             component: alert);
+
+        if (alert.CurrentLevel != level)
+            return false;
+
+        // Привилегированная консоль обходит запрет выбора кода, но не общий cooldown ручных изменений.
+        if (console.Comp.ForceAlertLevelChanges)
+            StartAlertLevelCooldown(alert);
+
         return true;
     }
 
@@ -324,17 +328,22 @@ public sealed partial class CommunicationsConsoleSystem
         if (station == null || !TryComp<AlertLevelComponent>(station.Value, out var alert))
             return false;
 
-        if (console.Comp.ForceAlertLevelChanges)
-            StartAlertLevelCooldown(alert);
-
-        return _alertLevelSystem.TrySetAdditionalLevel(
+        if (!_alertLevelSystem.TrySetAdditionalLevel(
             station.Value,
             level,
             enabled,
             playSound: true,
             announce: true,
             force: console.Comp.ForceAlertLevelChanges,
-            component: alert);
+            component: alert))
+        {
+            return false;
+        }
+
+        if (console.Comp.ForceAlertLevelChanges)
+            StartAlertLevelCooldown(alert);
+
+        return true;
     }
 
     private void OnSetAdditionalAlertLevelMessage(
@@ -344,8 +353,8 @@ public sealed partial class CommunicationsConsoleSystem
         if (message.Actor is not { Valid: true } user)
             return;
 
-        if (!TrySetAdditionalAlertLevel(console.AsNullable(), message.Level, message.Enabled, user))
-            UpdateCommsConsoleInterface(console, console.Comp);
+        TrySetAdditionalAlertLevel(console.AsNullable(), message.Level, message.Enabled, user);
+        UpdateCommsConsoleInterface(console, console.Comp);
     }
 
     private void StartAlertLevelCooldown(AlertLevelComponent alert)
@@ -358,14 +367,14 @@ public sealed partial class CommunicationsConsoleSystem
         Entity<CommunicationsConsoleComponent> console,
         ref CommunicationsConsoleSelectAlertStationMessage message)
     {
-        if (message.Actor is not { Valid: true } user
-            || !TryGetEntity(message.Station, out var stationUid)
-            || stationUid is not { } station
-            || !TrySelectAlertStation(console.AsNullable(), station, user))
+        if (message.Actor is { Valid: true } user
+            && TryGetEntity(message.Station, out var stationUid)
+            && stationUid is { } station)
         {
-            return;
+            TrySelectAlertStation(console.AsNullable(), station, user);
         }
 
+        // Клиент отключает элементы управления до получения подтверждённого состояния даже при отказе.
         UpdateCommsConsoleInterface(console, console.Comp);
     }
 }
