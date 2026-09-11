@@ -14,14 +14,6 @@ public sealed partial class CommunicationsConsoleSystem
      * Additional alert-level controls and remote station selection.
      */
 
-    private void InitializeAlertLevelControls()
-    {
-        SubscribeLocalEvent<AdditionalAlertLevelChangedEvent>(OnAdditionalAlertLevelChanged);
-        SubscribeLocalEvent<CommunicationsConsoleComponent, CommunicationsConsoleSetAdditionalAlertLevelMessage>(OnSetAdditionalAlertLevelMessage);
-        SubscribeLocalEvent<CommunicationsConsoleComponent, CommunicationsConsoleSelectAlertStationMessage>(OnSelectAlertStationMessage);
-        SubscribeLocalEvent<CommunicationsConsoleComponent, BoundUIOpenedEvent>(OnAlertConsoleOpened);
-    }
-
     private void OnAdditionalAlertLevelChanged(AdditionalAlertLevelChangedEvent args)
     {
         var query = EntityQueryEnumerator<CommunicationsConsoleComponent>();

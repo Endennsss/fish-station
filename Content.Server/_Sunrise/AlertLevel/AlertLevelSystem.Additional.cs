@@ -245,10 +245,20 @@ public sealed partial class AlertLevelSystem
         _gameTicker.StartGameRule(eventEnt);
     }
 
-    private static void PruneAdditionalLevels(Entity<AlertLevelComponent> station)
+    private void PruneAdditionalLevels(Entity<AlertLevelComponent> station)
     {
-        station.Comp.ActiveAdditionalLevels.RemoveWhere(level =>
-            !station.Comp.AlertLevels!.Levels.TryGetValue(level, out var detail) || !detail.IsAdditional);
+        var removedLevels = new List<string>();
+        foreach (var level in station.Comp.ActiveAdditionalLevels)
+        {
+            if (!station.Comp.AlertLevels!.Levels.TryGetValue(level, out var detail) || !detail.IsAdditional)
+                removedLevels.Add(level);
+        }
+
+        station.Comp.ActiveAdditionalLevels.ExceptWith(removedLevels);
+        foreach (var level in removedLevels)
+        {
+            RaiseLocalEvent(new AdditionalAlertLevelChangedEvent(station, level, false));
+        }
     }
 }
 

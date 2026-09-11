@@ -22,6 +22,7 @@ using Content.Shared.Popups;
 using Content.Shared.Power.EntitySystems;
 using Content.Shared.Speech;
 using Content.Shared.Speech.Components;
+using Content.Shared.UserInterface; // Sunrise-Edit
 using Robust.Server.GameObjects;
 using Robust.Shared.Configuration;
 
@@ -47,7 +48,12 @@ namespace Content.Server.Communications
         {
             // All events that refresh the BUI
             SubscribeLocalEvent<AlertLevelChangedEvent>(OnAlertLevelChanged);
-            InitializeAlertLevelControls(); // Sunrise-Edit
+            // Sunrise edit start - подписки дополнительных кодов должны находиться непосредственно в Initialize().
+            SubscribeLocalEvent<AdditionalAlertLevelChangedEvent>(OnAdditionalAlertLevelChanged);
+            SubscribeLocalEvent<CommunicationsConsoleComponent, CommunicationsConsoleSetAdditionalAlertLevelMessage>(OnSetAdditionalAlertLevelMessage);
+            SubscribeLocalEvent<CommunicationsConsoleComponent, CommunicationsConsoleSelectAlertStationMessage>(OnSelectAlertStationMessage);
+            SubscribeLocalEvent<CommunicationsConsoleComponent, BoundUIOpenedEvent>(OnAlertConsoleOpened);
+            // Sunrise edit end
             SubscribeLocalEvent<RoundEndSystemChangedEvent>(_ => OnGenericBroadcastEvent());
             SubscribeLocalEvent<AlertLevelDelayFinishedEvent>(_ => OnGenericBroadcastEvent());
 

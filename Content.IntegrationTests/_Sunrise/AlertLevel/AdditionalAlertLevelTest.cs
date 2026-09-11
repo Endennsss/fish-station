@@ -127,8 +127,14 @@ public sealed class AdditionalAlertLevelTest
             alertLevel.AlertLevels = prototypeManager.Index<AlertLevelPrototype>(AlertLevelSystem.DefaultAlertLevelSet);
             alertLevel.CurrentLevel = "green";
 
-            alertLevel.ActiveAdditionalLevels.Add("yellow");
+            alertLevel.ActiveAdditionalLevels.Add("sierra");
             effectiveLevels.Add(alertLevelSystem.TryGetVisualAlertLevel((station, alertLevel), out var level, out _)
+                ? level
+                : string.Empty);
+            alertLevel.ActiveAdditionalLevels.Remove("sierra");
+
+            alertLevel.ActiveAdditionalLevels.Add("yellow");
+            effectiveLevels.Add(alertLevelSystem.TryGetVisualAlertLevel((station, alertLevel), out level, out _)
                 ? level
                 : string.Empty);
 
@@ -150,7 +156,7 @@ public sealed class AdditionalAlertLevelTest
 
         await server.WaitAssertion(() =>
         {
-            Assert.That(effectiveLevels, Is.EqualTo(new[] { "yellow", "red", "delta", "epsilon" }));
+            Assert.That(effectiveLevels, Is.EqualTo(new[] { "sierra", "yellow", "red", "delta", "epsilon" }));
         });
 
         await pair.CleanReturnAsync();

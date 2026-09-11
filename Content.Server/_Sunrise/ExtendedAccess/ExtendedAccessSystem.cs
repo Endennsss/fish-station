@@ -58,14 +58,24 @@ public sealed class ExtendedAccessSystem : EntitySystem
     private void OnAdditionalAlertLevelChanged(AdditionalAlertLevelChangedEvent ev)
     {
         if (!TryComp<AlertLevelComponent>(ev.Station, out var alert)
-            || alert.AlertLevels == null
-            || !alert.AlertLevels.Levels.TryGetValue(ev.AlertLevel, out var detail)
-            || detail.ExtendedAccessOptions is not { } options)
+            || alert.AlertLevels == null)
         {
             return;
         }
 
-        ScheduleAccessUpdate((ev.Station, alert), options, ev.Enabled);
+        if (alert.AlertLevels.Levels.TryGetValue(ev.AlertLevel, out var detail)
+            && detail.ExtendedAccessOptions is { } options)
+        {
+            ScheduleAccessUpdate((ev.Station, alert), options, ev.Enabled);
+            return;
+        }
+
+        // Удалённый прототип уровня больше не содержит настроек, поэтому сбрасываем его доступы сразу.
+        if (!ev.Enabled)
+        {
+            CancelUpdate(ev.Station);
+            ApplyAccessUpdate((ev.Station, alert), announceAccessGrant: false);
+        }
     }
 
     private void ScheduleAccessUpdate(
@@ -100,8 +110,7 @@ public sealed class ExtendedAccessSystem : EntitySystem
         CancellationTokenSource token,
         bool announceAccessGrant)
     {
-        if (TerminatingOrDeleted(station)
-            || !_tokens.TryGetValue(station, out var currentToken)
+        if (!_tokens.TryGetValue(station, out var currentToken)
             || currentToken != token)
         {
             return;
@@ -110,6 +119,16 @@ public sealed class ExtendedAccessSystem : EntitySystem
         _tokens.Remove(station);
         token.Dispose();
 
+        if (TerminatingOrDeleted(station))
+            return;
+
+        ApplyAccessUpdate(station, announceAccessGrant);
+    }
+
+    private void ApplyAccessUpdate(
+        Entity<AlertLevelComponent> station,
+        bool announceAccessGrant)
+    {
         if (announceAccessGrant)
         {
             _chat.DispatchStationAnnouncement(station,
