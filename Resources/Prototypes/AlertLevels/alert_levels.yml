@@ -61,6 +61,7 @@
       # Sunrise edit end
     #Fish-start
     sierra:
+      isAdditional: true
       announcement: alert-level-sierra-announcement
       selectable: false
       sound:
