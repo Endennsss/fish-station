@@ -1,53 +1,92 @@
 uniform sampler2D SCREEN_TEXTURE;
-uniform lowp float base_haze;
-uniform lowp float haze_divisor;
+uniform lowp float bloom_strength;
+uniform mediump float bloom_radius;
+uniform lowp float halo_strength;
+uniform lowp float respect_lighting;
+uniform mediump vec2 bloom_quad_scale;
+uniform mediump vec2 bloom_texture_size;
 
-const lowp float[3] weights = float[](0.2, 0.0625, 0.0375);
+const mediump float center_weight = 0.28;
+const mediump float near_radius = 1.25;
+const mediump float near_weight = 0.045;
+const mediump float medium_radius = 3.0;
+const mediump float medium_weight = 0.018;
+const mediump float wide_radius = 5.25;
+const mediump float wide_weight = 0.006;
+const mediump float diagonal_scale = 0.70710678;
+const mediump float bloom_threshold = 0.008;
+const mediump float bloom_soft_knee = 0.018;
+const mediump float background_suppression = 0.62;
 
-lowp float adjust_alpha(lowp vec4 background) {
-    lowp float average_color = dot(background.rgb, vec3(0.3333));
-    lowp float boost = 1.0 - (1.0 - average_color) / 1.15;
-    lowp float transition = clamp((average_color - 0.035) / haze_divisor, 0.0, 2.0);
-    return boost * (1.0 - transition) + transition;
+mediump vec4 sample_mask(highp vec2 uv, highp vec4 uv_bounds) {
+    mediump float inside = step(uv_bounds.x, uv.x) * step(uv.x, uv_bounds.z) *
+        step(uv_bounds.y, uv.y) * step(uv.y, uv_bounds.w);
+    highp vec2 half_texel = TEXTURE_PIXEL_SIZE * 0.5;
+    highp vec2 safe_uv = clamp(uv, uv_bounds.xy + half_texel, uv_bounds.zw - half_texel);
+    mediump vec4 mask = zTexture(safe_uv);
+    return vec4(mask.rgb * mask.a, mask.a) * inside;
 }
 
-lowp vec4 add_haze(lowp vec4 color, lowp float intensity) {
-    return vec4(mix(color.rgb, vec3(0.9, 0.85, 0.8), intensity), color.a);
-}
+mediump vec4 sample_ring(
+    highp vec2 uv,
+    highp vec4 uv_bounds,
+    mediump float radius,
+    mediump float weight) {
+    mediump float diagonal = radius * diagonal_scale;
+    highp vec2 texel = TEXTURE_PIXEL_SIZE;
+    mediump vec4 result = vec4(0.0);
 
-lowp vec4 blur_sample(lowp vec2 offset, lowp vec2 uv, lowp vec2 fragment, lowp int step) {
-    lowp vec4 sampleColor = zTexture(uv + offset * TEXTURE_PIXEL_SIZE) * weights[step];
-    sampleColor = add_haze(sampleColor, base_haze);
-    sampleColor.a *= adjust_alpha(zTextureSpec(SCREEN_TEXTURE, (fragment + offset) * SCREEN_PIXEL_SIZE));
-    return sampleColor;
-}
+    result += sample_mask(uv + vec2(radius, 0.0) * texel, uv_bounds);
+    result += sample_mask(uv + vec2(-radius, 0.0) * texel, uv_bounds);
+    result += sample_mask(uv + vec2(0.0, radius) * texel, uv_bounds);
+    result += sample_mask(uv + vec2(0.0, -radius) * texel, uv_bounds);
+    result += sample_mask(uv + vec2(diagonal, diagonal) * texel, uv_bounds);
+    result += sample_mask(uv + vec2(diagonal, -diagonal) * texel, uv_bounds);
+    result += sample_mask(uv + vec2(-diagonal, diagonal) * texel, uv_bounds);
+    result += sample_mask(uv + vec2(-diagonal, -diagonal) * texel, uv_bounds);
 
-lowp vec2 blur_offset(lowp int index, lowp float step) {
-    lowp vec3 basis = vec3(1.0, 0.0, -1.0);
-    lowp vec2 offsets[8];
-    offsets[0] = basis.xy;
-    offsets[1] = -basis.xy;
-    offsets[2] = basis.yx;
-    offsets[3] = -basis.yx;
-    offsets[4] = basis.xx;
-    offsets[5] = basis.xz;
-    offsets[6] = basis.zx;
-    offsets[7] = basis.zz;
-    return offsets[index % 8] * step;
+    return result * weight;
 }
 
 void fragment() {
-    lowp vec4 sprite = zTexture(UV);
-    if (sprite.a == 0.0)
+    highp vec2 uv_size = bloom_texture_size * TEXTURE_PIXEL_SIZE;
+    highp vec2 uv_min = UV - UV2 * uv_size;
+    highp vec4 uv_bounds = vec4(uv_min, uv_min + uv_size);
+    highp vec2 source_uv = (UV2 - vec2(0.5)) * bloom_quad_scale + vec2(0.5);
+    highp vec2 uv = uv_min + source_uv * uv_size;
+    mediump vec4 bloom = sample_mask(uv, uv_bounds) * center_weight;
+    bloom += sample_ring(uv, uv_bounds, near_radius * bloom_radius, near_weight) * halo_strength;
+    bloom += sample_ring(uv, uv_bounds, medium_radius * bloom_radius, medium_weight) * halo_strength;
+    bloom += sample_ring(uv, uv_bounds, wide_radius * bloom_radius, wide_weight) * halo_strength;
+
+    mediump float bloom_luminance = zGrayscale_BT709(bloom.rgb);
+
+    // FIsh edit - мягко отсекаем слабый шум маски, не обрезая края halo.
+    mediump float threshold_factor = smoothstep(
+        bloom_threshold - bloom_soft_knee,
+        bloom_threshold + bloom_soft_knee,
+        bloom_luminance);
+    mediump float bloom_peak = max(max(bloom.r, bloom.g), bloom.b);
+
+    if (bloom_peak <= 0.0 || threshold_factor <= 0.0)
         discard;
 
-    lowp vec4 result = blur_sample(vec2(0.0), UV.xy, FRAGCOORD.xy, 0);
-    for (lowp int ring = 0; ring < 2; ring++) {
-        lowp float step = float(ring + 1);
-        for (lowp int sample_index = 0; sample_index < 8; sample_index++) {
-            result += blur_sample(blur_offset(sample_index, step), UV.xy, FRAGCOORD.xy, ring + 1);
-        }
-    }
+    highp vec2 screen_uv = FRAGCOORD.xy * SCREEN_PIXEL_SIZE;
+    mediump vec3 background = zTextureSpec(SCREEN_TEXTURE, screen_uv).rgb;
+    mediump float background_luminance = zGrayscale_BT709(background);
+    mediump float background_factor = 1.0 - background_suppression *
+        smoothstep(0.18, 0.8, background_luminance);
+    mediump float local_light = max(max(lightSample.r, lightSample.g), lightSample.b);
+    mediump float light_factor = smoothstep(0.06, 0.3, local_light);
+    mediump float visibility_factor = mix(1.0, light_factor, respect_lighting);
+    lowp float alpha = clamp(
+        bloom_peak * threshold_factor * bloom_strength * background_factor * visibility_factor,
+        0.0,
+        1.0);
 
-    COLOR = add_haze(result, 0.2);
+    if (alpha <= 0.0)
+        discard;
+
+    COLOR = vec4(bloom.rgb / bloom_peak, alpha);
+    lightSample = vec3(1.0);
 }

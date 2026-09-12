@@ -1,4 +1,7 @@
+using Content.Shared._Fish.Shaders.Bloom;
 using Content.Shared._Sunrise.SunriseCCVars;
+using Content.Shared.Examine;
+using Robust.Client.ComponentTrees;
 using Robust.Client.GameObjects;
 using Robust.Client.Graphics;
 using Robust.Shared.Configuration;
@@ -8,25 +11,31 @@ using DrawDepth = Content.Shared.DrawDepth.DrawDepth;
 namespace Content.Client._Sunrise.Shaders.Bloom;
 
 /// <summary>
-/// Collects compatible lights and supplies their state to the bloom overlays.
+/// Собирает совместимые источники свечения и передаёт их состояние в bloom overlay.
 /// </summary>
 public sealed class LightingOverlaySystem : EntitySystem
 {
     [Dependency] private readonly IConfigurationManager _configuration = default!;
     [Dependency] private readonly BloomOverlayTreeSystem _bloomTree = default!;
+    [Dependency] private readonly ExamineSystemShared _examine = default!;
     [Dependency] private readonly IOverlayManager _overlay = default!;
     [Dependency] private readonly IPrototypeManager _prototype = default!;
     [Dependency] private readonly SpriteSystem _sprite = default!;
+    [Dependency] private readonly SpriteTreeSystem _spriteTree = default!;
     [Dependency] private readonly TransformSystem _transform = default!;
 
+    private EntityQuery<FishEmissiveBloomComponent> _emissiveQuery;
+    private EntityQuery<BloomOverlayVisualsComponent> _bloomVisualsQuery;
     private EntityQuery<PointLightComponent> _pointLightQuery;
     private PointLightingOverlay? _bloomOverlay;
-    private float _bloomStrength = 0.7f;
+    private float _bloomStrength = 0.45f; // FIsh edit - новая нейтральная интенсивность по умолчанию
 
     public override void Initialize()
     {
         base.Initialize();
 
+        _emissiveQuery = GetEntityQuery<FishEmissiveBloomComponent>();
+        _bloomVisualsQuery = GetEntityQuery<BloomOverlayVisualsComponent>();
         _pointLightQuery = GetEntityQuery<PointLightComponent>();
         Subs.CVar(_configuration, SunriseCCVars.LightBloomEnabled, OnBloomEnabledChanged, true);
         Subs.CVar(_configuration, SunriseCCVars.LightBloomStrength, OnBloomStrengthChanged, true);
@@ -66,13 +75,15 @@ public sealed class LightingOverlaySystem : EntitySystem
 
         _bloomOverlay ??= new PointLightingOverlay(
             _bloomTree,
+            _examine,
+            _spriteTree,
             _prototype,
             _sprite,
             _transform,
+            _emissiveQuery,
+            _bloomVisualsQuery,
             _pointLightQuery,
             (int) DrawDepth.Effects,
-            0.8f,
-            0.05f,
             _bloomStrength);
 
         _overlay.AddOverlay(_bloomOverlay);
