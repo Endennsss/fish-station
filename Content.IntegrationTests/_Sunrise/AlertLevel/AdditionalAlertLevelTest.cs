@@ -225,24 +225,37 @@ public sealed class AdditionalAlertLevelTest
         var entityManager = server.EntMan;
         var prototypeManager = server.ResolveDependency<IPrototypeManager>();
         var accessReaderSystem = server.System<AccessReaderSystem>();
+        var alertLevelSystem = server.System<AlertLevelSystem>();
         _ = server.System<ExtendedAccessSystem>();
 
         await pair.CreateTestMap();
+        var testMap = pair.TestMap ?? throw new InvalidOperationException("Test map was not created.");
         AccessReaderComponent accessReader = null!;
+        AlertLevelComponent alert = null!;
+        var yellowEnabled = false;
+        var yellowDisabled = false;
 
         await server.WaitPost(() =>
         {
             var station = entityManager.SpawnEntity(null, MapCoordinates.Nullspace);
-            var alert = entityManager.AddComponent<AlertLevelComponent>(station);
+            alert = entityManager.AddComponent<AlertLevelComponent>(station);
             alert.AlertLevels = prototypeManager.Index<AlertLevelPrototype>(AlertLevelSystem.DefaultAlertLevelSet);
             alert.CurrentLevel = "green";
-            alert.ActiveAdditionalLevels.Add("yellow");
 
-            var stationMember = entityManager.EnsureComponent<StationMemberComponent>(pair.TestMap.Grid);
+            var stationMember = entityManager.EnsureComponent<StationMemberComponent>(testMap.Grid);
             stationMember.Station = station;
 
-            var reader = entityManager.SpawnEntity("DoorElectronicsLawyer", pair.TestMap.GridCoords);
+            var reader = entityManager.SpawnEntity("DoorElectronicsLawyer", testMap.GridCoords);
             accessReader = entityManager.GetComponent<AccessReaderComponent>(reader);
+            yellowEnabled = alertLevelSystem.TrySetAdditionalLevel(
+                station,
+                "yellow",
+                true,
+                playSound: false,
+                announce: false,
+                component: alert);
+
+            // Имитируем уже завершившуюся выдачу, не ожидая минутный таймер в тесте.
             accessReaderSystem.UpdateAccess(
                 (reader, accessReader),
                 alert.CurrentLevel,
@@ -252,19 +265,115 @@ public sealed class AdditionalAlertLevelTest
                     new("YellowAlertAccesses"),
                 });
 
-            Assert.That(accessReader.AdditionalGroups,
-                Does.Contain(new ProtoId<AccessGroupPrototype>("YellowAlertAccesses")));
-
-            alert.ActiveAdditionalLevels.Remove("yellow");
-            entityManager.EventBus.RaiseEvent(
-                EventSource.Local,
-                new AdditionalAlertLevelChangedEvent(station, "yellow", false));
+            alert.CurrentDelay = 0;
+            alert.ActiveDelay = false;
+            yellowDisabled = alertLevelSystem.TrySetAdditionalLevel(
+                station,
+                "yellow",
+                false,
+                playSound: false,
+                announce: false,
+                component: alert);
         });
 
         await server.WaitAssertion(() =>
         {
-            Assert.That(accessReader.AdditionalGroups,
-                Does.Not.Contain(new ProtoId<AccessGroupPrototype>("YellowAlertAccesses")));
+            Assert.Multiple(() =>
+            {
+                Assert.That(yellowEnabled, Is.True);
+                Assert.That(yellowDisabled, Is.True);
+                Assert.That(alert.ActiveAdditionalLevels, Does.Not.Contain("yellow"));
+                Assert.That(accessReader.AdditionalGroups,
+                    Does.Not.Contain(new ProtoId<AccessGroupPrototype>("YellowAlertAccesses")));
+            });
+        });
+
+        await pair.CleanReturnAsync();
+    }
+
+    [Test]
+    public async Task ImmediateAdditionalLevelDoesNotGrantPendingLevelAccess()
+    {
+        await using var pair = await PoolManager.GetServerClient();
+        var server = pair.Server;
+        var entityManager = server.EntMan;
+        var prototypeManager = server.ResolveDependency<IPrototypeManager>();
+        var alertLevelSystem = server.System<AlertLevelSystem>();
+        _ = server.System<ExtendedAccessSystem>();
+
+        await pair.CreateTestMap();
+        var testMap = pair.TestMap ?? throw new InvalidOperationException("Test map was not created.");
+        AccessReaderComponent accessReader = null!;
+        AlertLevelComponent alert = null!;
+        EntityUid station = default;
+        var yellowEnabled = false;
+        var deltaEnabled = false;
+
+        await server.WaitPost(() =>
+        {
+            station = entityManager.SpawnEntity(null, MapCoordinates.Nullspace);
+            alert = entityManager.AddComponent<AlertLevelComponent>(station);
+            alert.AlertLevels = prototypeManager.Index<AlertLevelPrototype>(AlertLevelSystem.DefaultAlertLevelSet);
+            alert.CurrentLevel = "green";
+
+            var stationMember = entityManager.EnsureComponent<StationMemberComponent>(testMap.Grid);
+            stationMember.Station = station;
+
+            var reader = entityManager.SpawnEntity("DoorElectronicsLawyer", testMap.GridCoords);
+            accessReader = entityManager.GetComponent<AccessReaderComponent>(reader);
+
+            yellowEnabled = alertLevelSystem.TrySetAdditionalLevel(
+                station,
+                "yellow",
+                true,
+                playSound: false,
+                announce: false,
+                force: true,
+                component: alert);
+            deltaEnabled = alertLevelSystem.TrySetAdditionalLevel(
+                station,
+                "delta",
+                true,
+                playSound: false,
+                announce: false,
+                force: true,
+                component: alert);
+        });
+
+        await server.WaitRunTicks(1);
+
+        await server.WaitAssertion(() =>
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(yellowEnabled, Is.True);
+                Assert.That(deltaEnabled, Is.True);
+                Assert.That(alert.ActiveAdditionalLevels, Is.EquivalentTo(new[] { "yellow", "delta" }));
+                Assert.That(accessReader.AdditionalGroups,
+                    Does.Contain(new ProtoId<AccessGroupPrototype>("AllAccess")));
+                Assert.That(accessReader.AdditionalGroups,
+                    Does.Not.Contain(new ProtoId<AccessGroupPrototype>("YellowAlertAccesses")));
+            });
+        });
+
+        await server.WaitPost(() =>
+        {
+            alertLevelSystem.TrySetAdditionalLevel(
+                station,
+                "delta",
+                false,
+                playSound: false,
+                announce: false,
+                force: true,
+                component: alert);
+            alertLevelSystem.TrySetAdditionalLevel(
+                station,
+                "yellow",
+                false,
+                playSound: false,
+                announce: false,
+                force: true,
+                component: alert);
         });
 
         await pair.CleanReturnAsync();
