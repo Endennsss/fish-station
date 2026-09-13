@@ -23,8 +23,7 @@ public sealed class BloomOverlayTreeSystem : ComponentTreeSystem<BloomOverlayTre
         Angle rot)
     {
         var texture = _sprite.Frame0(entry.Component.MaskSprite);
-        var haloRadius = Math.Clamp(entry.Component.HaloRadius, 0.5f, 2f);
-        var size = new Vector2(texture.Width, texture.Height) / EyeManager.PixelsPerMeter * haloRadius;
+        var size = new Vector2(texture.Width, texture.Height) / EyeManager.PixelsPerMeter;
         var radius = size.Length() / 2f + entry.Component.MaskOffset.Length();
         var extents = new Vector2(radius);
         return new Box2(pos - extents, pos + extents);

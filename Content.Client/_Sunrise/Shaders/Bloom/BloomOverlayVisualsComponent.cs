@@ -36,7 +36,7 @@ public sealed partial class BloomOverlayVisualsComponent : Component, IComponent
     public float CoreStrength = 0.7f;
 
     /// <summary>
-    /// Масштаб локального ореола вокруг маски источника.
+    /// Радиус профиля: большие значения переносят больше энергии в широкий blur-уровень.
     /// </summary>
     [DataField]
     public float HaloRadius = 1.2f;

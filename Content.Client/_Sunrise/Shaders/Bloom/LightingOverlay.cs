@@ -23,13 +23,19 @@ namespace Content.Client._Sunrise.Shaders.Bloom;
 public sealed class PointLightingOverlay : Overlay
 {
     private static readonly ProtoId<ShaderPrototype> BloomShader = "SunriseLightingOverlay";
-    private static readonly ProtoId<ShaderPrototype> BloomDownsampleShader = "SunriseBloomDownsample";
     private static readonly ProtoId<ShaderPrototype> UnshadedShader = "unshaded";
 
-    private const int BloomPaddingPixels = 96;
+    private const int NearDownsample = 2;
+    private const int MediumDownsample = 4;
+    private const int WideDownsample = 8;
     private const float NearBlurRadius = 3f;
     private const float MediumBlurRadius = 10f;
     private const float WideBlurRadius = 26f;
+    private const int BloomPaddingReserve = 32;
+    private static readonly int BloomPaddingPixels = (int) MathF.Ceiling(MathF.Max(
+        NearBlurRadius * NearDownsample,
+        MathF.Max(MediumBlurRadius * MediumDownsample, WideBlurRadius * WideDownsample))) +
+        BloomPaddingReserve;
     // FIsh edit - широкий ореол предметов и более сдержанный bloom ламп.
     private const float PointLightStrength = 0.65f;
     private const float AutoEmissiveStrength = 1.3f;
@@ -49,7 +55,6 @@ public sealed class PointLightingOverlay : Overlay
     private readonly IPrototypeManager _prototype;
     private readonly OverlayResourceCache<BloomResources> _resources = new();
     private ShaderInstance? _compositeShader;
-    private ShaderInstance? _downsampleShader;
     private readonly SpriteSystem _sprite;
     private readonly SpriteTreeSystem _spriteTree;
     private readonly TransformSystem _transform;
@@ -96,7 +101,9 @@ public sealed class PointLightingOverlay : Overlay
 
         _visibleEmissives.Clear();
         _visibleLights.Clear();
-        var visibleArea = args.WorldAABB.Enlarged(4f);
+        var paddingWorld = BloomPaddingPixels * eye.Zoom.X /
+            (EyeManager.PixelsPerMeter * args.Viewport.RenderScale.X);
+        var visibleArea = args.WorldAABB.Enlarged(paddingWorld);
         var lightQueryState = new BloomLightQueryState(
             _visibleLights,
             _maskCache,
@@ -132,20 +139,38 @@ public sealed class PointLightingOverlay : Overlay
         var paddedSize = viewport.Size + new Vector2i(BloomPaddingPixels * 2, BloomPaddingPixels * 2);
         EnsureTargets(resources, paddedSize);
 
-        RenderBloomMask(args.WorldHandle, viewport, eye, resources.Mask!);
-        Downsample(args.RenderHandle.DrawingHandleScreen, args.WorldHandle, resources.Mask!, resources.Near!);
-        Downsample(args.RenderHandle.DrawingHandleScreen, args.WorldHandle, resources.Near!, resources.Medium!);
-        Downsample(args.RenderHandle.DrawingHandleScreen, args.WorldHandle, resources.Medium!, resources.Wide!);
+        RenderBloomMask(args.WorldHandle, viewport, eye, resources.CoreMask!, BloomMaskLevel.Core, 1);
+        RenderBloomMask(
+            args.WorldHandle,
+            viewport,
+            eye,
+            resources.NearMask!,
+            BloomMaskLevel.Near,
+            NearDownsample);
+        RenderBloomMask(
+            args.WorldHandle,
+            viewport,
+            eye,
+            resources.MediumMask!,
+            BloomMaskLevel.Medium,
+            MediumDownsample);
+        RenderBloomMask(
+            args.WorldHandle,
+            viewport,
+            eye,
+            resources.WideMask!,
+            BloomMaskLevel.Wide,
+            WideDownsample);
 
-        _clyde.BlurRenderTarget(viewport, resources.Near!, resources.NearBuffer!, eye, NearBlurRadius);
-        _clyde.BlurRenderTarget(viewport, resources.Medium!, resources.MediumBuffer!, eye, MediumBlurRadius);
-        _clyde.BlurRenderTarget(viewport, resources.Wide!, resources.WideBuffer!, eye, WideBlurRadius);
+        _clyde.BlurRenderTarget(viewport, resources.NearMask!, resources.NearBuffer!, eye, NearBlurRadius);
+        _clyde.BlurRenderTarget(viewport, resources.MediumMask!, resources.MediumBuffer!, eye, MediumBlurRadius);
+        _clyde.BlurRenderTarget(viewport, resources.WideMask!, resources.WideBuffer!, eye, WideBlurRadius);
 
         _compositeShader ??= _prototype.Index(BloomShader).InstanceUnique();
         _compositeShader.SetParameter("SCREEN_TEXTURE", ScreenTexture);
-        _compositeShader.SetParameter("near_texture", resources.Near!.Texture);
-        _compositeShader.SetParameter("medium_texture", resources.Medium!.Texture);
-        _compositeShader.SetParameter("wide_texture", resources.Wide!.Texture);
+        _compositeShader.SetParameter("near_texture", resources.NearMask!.Texture);
+        _compositeShader.SetParameter("medium_texture", resources.MediumMask!.Texture);
+        _compositeShader.SetParameter("wide_texture", resources.WideMask!.Texture);
         _compositeShader.SetParameter("bloom_strength", BloomStrength);
 
         var paddingWorld = BloomPaddingPixels * eye.Zoom.X /
@@ -153,7 +178,7 @@ public sealed class PointLightingOverlay : Overlay
         var bloomBounds = args.WorldBounds.Enlarged(paddingWorld);
         args.WorldHandle.SetTransform(Matrix3x2.Identity);
         args.WorldHandle.UseShader(_compositeShader);
-        args.WorldHandle.DrawTextureRect(resources.Mask!.Texture, bloomBounds);
+        args.WorldHandle.DrawTextureRect(resources.CoreMask!.Texture, bloomBounds);
         args.WorldHandle.UseShader(null);
     }
 
@@ -161,7 +186,6 @@ public sealed class PointLightingOverlay : Overlay
     {
         _resources.Dispose();
         _compositeShader?.Dispose();
-        _downsampleShader?.Dispose();
         base.DisposeBehavior();
     }
 
@@ -169,39 +193,26 @@ public sealed class PointLightingOverlay : Overlay
         DrawingHandleWorld handle,
         IClydeViewport viewport,
         IEye eye,
-        IRenderTexture target)
+        IRenderTexture target,
+        BloomMaskLevel level,
+        int downsample)
     {
         handle.RenderInRenderTarget(target, () =>
         {
-            var worldToTarget = target.GetWorldToLocalMatrix(eye, viewport.RenderScale);
+            var targetScale = viewport.RenderScale / downsample;
+            var worldToTarget = target.GetWorldToLocalMatrix(eye, targetScale);
             handle.UseShader(_prototype.Index(UnshadedShader).Instance());
 
             foreach (var light in _visibleLights)
             {
-                handle.SetTransform(Matrix3x2.Multiply(light.WorldMatrix, worldToTarget));
-                var size = light.MaskTexture.Size / (float) EyeManager.PixelsPerMeter;
-                var center = light.MaskOffset + size / 2f;
-                var softness = Math.Clamp(light.Softness, 0f, 1f);
-                var haloRadius = Math.Clamp(light.HaloRadius, MinLightHaloRadius, MaxLightHaloRadius);
-
-                // FIsh edit - отдельный слабый halo делает профиль лампы мягким, не раздувая белое ядро.
-                var haloSize = size * haloRadius;
-                var haloQuad = Box2.FromDimensions(center - haloSize / 2f, haloSize);
-                var haloStrength = PointLightStrength * (0.16f + softness * 0.24f) /
-                    MathF.Sqrt(haloRadius);
-                handle.DrawTextureRect(light.MaskTexture, haloQuad, ScaleColor(light.Color, haloStrength));
-
-                var coreStrength = Math.Clamp(light.CoreStrength, 0f, MaxLightCoreStrength);
-                if (coreStrength <= 0f)
+                var strength = GetLightMaskStrength(light, level);
+                if (strength <= 0f)
                     continue;
 
-                var coreScale = 1f - softness * 0.18f;
-                var coreSize = size * coreScale;
-                var coreQuad = Box2.FromDimensions(center - coreSize / 2f, coreSize);
-                handle.DrawTextureRect(
-                    light.MaskTexture,
-                    coreQuad,
-                    ScaleColor(light.Color, PointLightStrength * coreStrength));
+                handle.SetTransform(Matrix3x2.Multiply(light.WorldMatrix, worldToTarget));
+                var size = light.MaskTexture.Size / (float) EyeManager.PixelsPerMeter;
+                var quad = Box2.FromDimensions(light.MaskOffset, size);
+                handle.DrawTextureRect(light.MaskTexture, quad, ScaleColor(light.Color, strength));
             }
 
             foreach (var emissive in _visibleEmissives)
@@ -211,35 +222,63 @@ public sealed class PointLightingOverlay : Overlay
                 if (radius <= 0f || strength <= 0f)
                     continue;
 
-                // FIsh edit - radius регулирует вклад предмета в дальний общий halo.
-                var maskStrength = strength * (0.75f + 0.25f * radius / MaxBloomRadius);
+                var maskStrength = GetEmissiveMaskStrength(strength, radius, level);
+                if (maskStrength <= 0f)
+                    continue;
+
                 DrawEmissiveLayers(handle, emissive, eye.Rotation, maskStrength, worldToTarget);
             }
         }, Color.Black.WithAlpha(0f));
     }
 
-    private void Downsample(
-        DrawingHandleScreen screenHandle,
-        DrawingHandleWorld worldHandle,
-        IRenderTexture source,
-        IRenderTexture target)
+    private static float GetLightMaskStrength(in BloomLightEntry light, BloomMaskLevel level)
     {
-        _downsampleShader ??= _prototype.Index(BloomDownsampleShader).InstanceUnique();
-        worldHandle.RenderInRenderTarget(target, () =>
+        if (level == BloomMaskLevel.Core)
         {
-            screenHandle.SetTransform(Matrix3x2.Identity);
-            screenHandle.UseShader(_downsampleShader);
-            screenHandle.DrawTextureRect(source.Texture, UIBox2.FromDimensions(Vector2.Zero, (Vector2) target.Size));
-            screenHandle.UseShader(null);
-        }, Color.Black.WithAlpha(0f));
+            return PointLightStrength * Math.Clamp(light.CoreStrength, 0f, MaxLightCoreStrength);
+        }
+
+        var softness = Math.Clamp(light.Softness, 0f, 1f);
+        var haloRadius = Math.Clamp(light.HaloRadius, MinLightHaloRadius, MaxLightHaloRadius);
+        var radiusFactor = (haloRadius - MinLightHaloRadius) /
+            (MaxLightHaloRadius - MinLightHaloRadius);
+
+        var profileWeight = level switch
+        {
+            BloomMaskLevel.Near => 1f - softness * 0.5f,
+            BloomMaskLevel.Medium => softness * 0.7f,
+            BloomMaskLevel.Wide => softness * radiusFactor * 0.5f,
+            _ => 0f,
+        };
+
+        return PointLightStrength * profileWeight;
+    }
+
+    private static float GetEmissiveMaskStrength(float strength, float radius, BloomMaskLevel level)
+    {
+        var radiusFactor = radius / MaxBloomRadius;
+        var profileWeight = level switch
+        {
+            BloomMaskLevel.Core => 0.8f,
+            BloomMaskLevel.Near => 0.85f - radiusFactor * 0.25f,
+            BloomMaskLevel.Medium => 0.25f + radiusFactor * 0.45f,
+            BloomMaskLevel.Wide => 0.05f + radiusFactor * 0.4f,
+            _ => 0f,
+        };
+
+        return strength * profileWeight;
     }
 
     private void EnsureTargets(BloomResources resources, Vector2i size)
     {
-        EnsureTarget(ref resources.Mask, size, "fish-bloom-mask");
-        EnsureBlurLevel(ref resources.Near, ref resources.NearBuffer, size / 2, "near");
-        EnsureBlurLevel(ref resources.Medium, ref resources.MediumBuffer, size / 4, "medium");
-        EnsureBlurLevel(ref resources.Wide, ref resources.WideBuffer, size / 8, "wide");
+        EnsureTarget(ref resources.CoreMask, size, "fish-bloom-core-mask");
+        EnsureBlurLevel(ref resources.NearMask, ref resources.NearBuffer, size / NearDownsample, "near");
+        EnsureBlurLevel(
+            ref resources.MediumMask,
+            ref resources.MediumBuffer,
+            size / MediumDownsample,
+            "medium");
+        EnsureBlurLevel(ref resources.WideMask, ref resources.WideBuffer, size / WideDownsample, "wide");
     }
 
     private void EnsureBlurLevel(
@@ -614,24 +653,32 @@ public sealed class PointLightingOverlay : Overlay
         Vector2 WorldPosition,
         Angle WorldRotation);
 
+    private enum BloomMaskLevel : byte
+    {
+        Core,
+        Near,
+        Medium,
+        Wide,
+    }
+
     private sealed class BloomResources : IDisposable
     {
-        public IRenderTexture? Mask;
-        public IRenderTexture? Near;
+        public IRenderTexture? CoreMask;
+        public IRenderTexture? NearMask;
         public IRenderTexture? NearBuffer;
-        public IRenderTexture? Medium;
+        public IRenderTexture? MediumMask;
         public IRenderTexture? MediumBuffer;
-        public IRenderTexture? Wide;
+        public IRenderTexture? WideMask;
         public IRenderTexture? WideBuffer;
 
         public void Dispose()
         {
-            Mask?.Dispose();
-            Near?.Dispose();
+            CoreMask?.Dispose();
+            NearMask?.Dispose();
             NearBuffer?.Dispose();
-            Medium?.Dispose();
+            MediumMask?.Dispose();
             MediumBuffer?.Dispose();
-            Wide?.Dispose();
+            WideMask?.Dispose();
             WideBuffer?.Dispose();
         }
     }

@@ -2,8 +2,3 @@
   id: SunriseLightingOverlay
   kind: source
   path: "/Textures/_Sunrise/Shaders/light.swsl"
-
-- type: shader
-  id: SunriseBloomDownsample
-  kind: source
-  path: "/Textures/_Sunrise/Shaders/bloom_downsample.swsl"
