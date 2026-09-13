@@ -1,0 +1,28 @@
+light_mode unshaded;
+blend_mode none;
+uniform mediump vec2 source_texture_size;
+
+// FIsh edit - сохраняем яркость маленьких индикаторов при уменьшении маски.
+void fragment() {
+    highp vec2 uv_size = source_texture_size * TEXTURE_PIXEL_SIZE;
+    highp vec2 uv_min = UV - UV2 * uv_size;
+    highp vec2 half_texel = TEXTURE_PIXEL_SIZE * 0.5;
+    highp vec2 uv_max = uv_min + uv_size;
+    mediump vec4 brightest = vec4(0.0);
+    mediump float brightness = 0.0;
+
+    for (int y = -1; y <= 2; y++) {
+        for (int x = -1; x <= 2; x++) {
+            highp vec2 offset = vec2(float(x) - 0.5, float(y) - 0.5) * TEXTURE_PIXEL_SIZE;
+            mediump vec4 sample_color = zTexture(clamp(UV + offset, uv_min + half_texel, uv_max - half_texel));
+            mediump vec3 emissive = sample_color.rgb * sample_color.a;
+            mediump float sample_brightness = max(max(emissive.r, emissive.g), emissive.b);
+            if (sample_brightness > brightness) {
+                brightness = sample_brightness;
+                brightest = vec4(emissive, sample_color.a);
+            }
+        }
+    }
+
+    COLOR = brightest;
+}

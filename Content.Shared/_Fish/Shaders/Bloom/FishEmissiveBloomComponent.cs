@@ -21,10 +21,10 @@ public sealed partial class FishEmissiveBloomComponent : Component
     public float Strength = 0.8f;
 
     /// <summary>
-    /// Множитель радиусов blur. Для небольших экранов обычно достаточно 0.5–0.8.
+    /// Множитель радиусов blur; значения около 1.2 дают предметам заметный широкий ореол.
     /// </summary>
     [DataField]
-    public float Radius = 0.65f;
+    public float Radius = 1.2f;
 
     /// <summary>
     /// Дополнительная модуляция цвета; исходный цвет текстуры при этом сохраняется.

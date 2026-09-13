@@ -84,7 +84,7 @@
     layers:
     - computerLayerScreen
     strength: 2.0
-    radius: 1.1
+    radius: 1.5
   - type: DeviceNetwork
     deviceNetId: Wireless
   - type: WirelessNetworkConnection

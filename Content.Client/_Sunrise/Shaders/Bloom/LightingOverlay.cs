@@ -7,6 +7,7 @@ using Robust.Client.Graphics;
 using Robust.Client.Utility;
 using Robust.Shared.ComponentTrees;
 using Robust.Shared.Enums;
+using Robust.Shared.Graphics;
 using Robust.Shared.Graphics.RSI;
 using Robust.Shared.Map;
 using Robust.Shared.Physics;
@@ -21,25 +22,32 @@ namespace Content.Client._Sunrise.Shaders.Bloom;
 public sealed class PointLightingOverlay : Overlay
 {
     private static readonly ProtoId<ShaderPrototype> BloomShader = "SunriseLightingOverlay";
+    private static readonly ProtoId<ShaderPrototype> BloomDownsampleShader = "SunriseBloomDownsample";
 
-    // FIsh edit - предметы светятся выразительнее, а лампы дают более сдержанный bloom.
-    private const float PointLightStrength = 0.85f;
-    private const float PointLightRadius = 0.9f;
-    private const float PointLightHaloStrength = 0.9f;
-    private const float EmissiveHaloStrength = 0.55f;
+    private const int MaxCachedLinearMasks = 256;
+    private const int MaskDownsampleFactor = 4;
+    // FIsh edit - широкий ореол предметов и более сдержанный bloom ламп.
+    private const float PointLightStrength = 0.65f;
+    private const float PointLightRadius = 0.8f;
+    private const float PointLightHaloStrength = 0.75f;
+    private const float EmissiveHaloStrength = 0.75f;
     private const float AutoEmissiveStrength = 1.3f;
-    private const float AutoEmissiveRadius = 0.8f;
+    private const float AutoEmissiveRadius = 1.5f;
     private const float MaxBloomRadius = 2f;
-    private const float WideSampleRadius = 5.25f;
+    private const float WideSampleRadius = 7.5f;
 
     private readonly BloomOverlayTreeSystem _bloomTree;
+    private readonly IClyde _clyde;
     private readonly ExamineSystemShared _examine;
     private readonly EntityQuery<FishEmissiveBloomComponent> _emissiveQuery;
     private readonly EntityQuery<BloomOverlayVisualsComponent> _bloomVisualsQuery;
     private readonly Dictionary<BloomMaskKey, BloomMaskData> _maskCache = [];
+    private readonly Dictionary<Texture, IRenderTexture> _linearMaskCache = [];
+    private readonly Queue<Texture> _linearMaskOrder = [];
     private readonly EntityQuery<PointLightComponent> _pointLightQuery;
     private readonly IPrototypeManager _prototype;
     private readonly Dictionary<BloomShaderKey, ShaderInstance> _shaderCache = [];
+    private ShaderInstance? _downsampleShader;
     private readonly SpriteSystem _sprite;
     private readonly SpriteTreeSystem _spriteTree;
     private readonly TransformSystem _transform;
@@ -54,6 +62,7 @@ public sealed class PointLightingOverlay : Overlay
 
     public PointLightingOverlay(
         BloomOverlayTreeSystem bloomTree,
+        IClyde clyde,
         ExamineSystemShared examine,
         SpriteTreeSystem spriteTree,
         IPrototypeManager prototypeManager,
@@ -66,6 +75,7 @@ public sealed class PointLightingOverlay : Overlay
         float strength)
     {
         _bloomTree = bloomTree;
+        _clyde = clyde;
         _examine = examine;
         _spriteTree = spriteTree;
         _prototype = prototypeManager;
@@ -80,6 +90,14 @@ public sealed class PointLightingOverlay : Overlay
 
     protected override bool BeforeDraw(in OverlayDrawArgs args)
     {
+        // FIsh edit - освобождаем старые маски до начала новых команд отрисовки.
+        while (_linearMaskCache.Count > MaxCachedLinearMasks)
+        {
+            var oldTexture = _linearMaskOrder.Dequeue();
+            if (_linearMaskCache.Remove(oldTexture, out var oldTarget))
+                oldTarget.Dispose();
+        }
+
         if (BloomStrength <= 0f || args.Viewport.Eye is not { } eye)
             return false;
 
@@ -161,6 +179,12 @@ public sealed class PointLightingOverlay : Overlay
 
     protected override void DisposeBehavior()
     {
+        foreach (var target in _linearMaskCache.Values)
+            target.Dispose();
+
+        _linearMaskCache.Clear();
+        _linearMaskOrder.Clear();
+        _downsampleShader?.Dispose();
         ClearShaderCache();
         base.DisposeBehavior();
     }
@@ -200,6 +224,7 @@ public sealed class PointLightingOverlay : Overlay
         float haloStrength,
         bool respectLighting)
     {
+        var linearTexture = GetLinearMaskTexture(handle, texture);
         var padding = MathF.Ceiling(WideSampleRadius * radius + 1f) / EyeManager.PixelsPerMeter;
         var expandedQuad = quad.Enlarged(padding);
         var shader = GetBloomShader(new BloomShaderKey(
@@ -208,9 +233,40 @@ public sealed class PointLightingOverlay : Overlay
             haloStrength,
             respectLighting,
             expandedQuad.Size / quad.Size,
-            (Vector2) texture.Size));
+            (Vector2) linearTexture.Size));
         handle.UseShader(shader);
-        handle.DrawTextureRectRegion(texture, expandedQuad, color);
+        handle.DrawTextureRectRegion(linearTexture, expandedQuad, color);
+    }
+
+    private Texture GetLinearMaskTexture(DrawingHandleWorld handle, Texture texture)
+    {
+        if (_linearMaskCache.TryGetValue(texture, out var cached))
+            return cached.Texture;
+
+        // FIsh edit - уменьшаем только маску bloom, исходный RSI остаётся пиксельным.
+        var targetSize = new Vector2i(
+            Math.Max(1, (texture.Width + MaskDownsampleFactor - 1) / MaskDownsampleFactor),
+            Math.Max(1, (texture.Height + MaskDownsampleFactor - 1) / MaskDownsampleFactor));
+        var target = _clyde.CreateRenderTarget(
+            targetSize,
+            new RenderTargetFormatParameters(RenderTargetColorFormat.Rgba8Srgb),
+            new TextureSampleParameters { Filter = true },
+            name: "fish-bloom-linear-mask");
+        _downsampleShader ??= _prototype.Index(BloomDownsampleShader).InstanceUnique();
+        _downsampleShader.SetParameter("source_texture_size", (Vector2) texture.Size);
+        handle.RenderInRenderTarget(target, () =>
+        {
+            // FIsh edit - экранная проекция render target направлена вниз, а UV world-спрайта вверх.
+            handle.SetTransform(Matrix3x2.CreateScale(1f, -1f) *
+                Matrix3x2.CreateTranslation(0f, targetSize.Y));
+            handle.UseShader(_downsampleShader);
+            handle.DrawTextureRect(texture, Box2.FromDimensions(Vector2.Zero, (Vector2) targetSize));
+            handle.UseShader(null);
+        }, Color.Black.WithAlpha(0f));
+
+        _linearMaskCache.Add(texture, target);
+        _linearMaskOrder.Enqueue(texture);
+        return target.Texture;
     }
 
     private void DrawEmissiveLayers(
