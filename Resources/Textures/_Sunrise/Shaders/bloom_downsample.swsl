@@ -1,24 +1,12 @@
 light_mode unshaded;
 blend_mode none;
-uniform mediump vec2 source_texture_size;
 
-// FIsh edit - усреднение убирает квадратные пятна, небольшой boost сохраняет маленькие индикаторы.
+// FIsh edit - линейный box-filter перед каждым уменьшением маски в два раза.
 void fragment() {
-    highp vec2 uv_size = source_texture_size * TEXTURE_PIXEL_SIZE;
-    highp vec2 uv_min = UV - UV2 * uv_size;
-    highp vec2 half_texel = TEXTURE_PIXEL_SIZE * 0.5;
-    highp vec2 uv_max = uv_min + uv_size;
-    mediump vec3 emissive_sum = vec3(0.0);
-
-    for (int y = -1; y <= 2; y++) {
-        for (int x = -1; x <= 2; x++) {
-            highp vec2 offset = vec2(float(x) - 0.5, float(y) - 0.5) * TEXTURE_PIXEL_SIZE;
-            mediump vec4 sample_color = zTexture(clamp(UV + offset, uv_min + half_texel, uv_max - half_texel));
-            emissive_sum += sample_color.rgb * sample_color.a;
-        }
-    }
-
-    mediump vec3 emissive = min(emissive_sum * 0.2, vec3(1.0));
-    mediump float alpha = max(max(emissive.r, emissive.g), emissive.b);
-    COLOR = vec4(emissive, alpha);
+    highp vec2 offset = TEXTURE_PIXEL_SIZE * 0.5;
+    mediump vec4 result = zTexture(UV + vec2(-offset.x, -offset.y));
+    result += zTexture(UV + vec2(offset.x, -offset.y));
+    result += zTexture(UV + vec2(-offset.x, offset.y));
+    result += zTexture(UV + vec2(offset.x, offset.y));
+    COLOR = result * 0.25;
 }

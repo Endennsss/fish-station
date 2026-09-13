@@ -21,7 +21,7 @@ public sealed partial class FishEmissiveBloomComponent : Component
     public float Strength = 0.8f;
 
     /// <summary>
-    /// Множитель радиусов blur; значения около 1.2 дают предметам заметный широкий ореол.
+    /// Локальный профиль halo: ноль отключает эффект, большие значения усиливают вклад в общую размытую маску.
     /// </summary>
     [DataField]
     public float Radius = 1.2f;

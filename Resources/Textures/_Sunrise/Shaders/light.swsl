@@ -1,88 +1,50 @@
+light_mode unshaded;
+blend_mode normal;
+
 uniform sampler2D SCREEN_TEXTURE;
+uniform sampler2D near_texture;
+uniform sampler2D medium_texture;
+uniform sampler2D wide_texture;
 uniform lowp float bloom_strength;
-uniform mediump float bloom_radius;
-uniform lowp float halo_strength;
-uniform lowp float respect_lighting;
-uniform mediump vec2 bloom_quad_scale;
-uniform mediump vec2 bloom_texture_size;
 
-// FIsh edit - даже при bloom_strength = 1.0 свечение не перекрывает исходный спрайт.
-const mediump float center_weight = 0.18;
-// FIsh edit - непрерывное двумерное ядро заменяет три отчётливых blur-кольца.
-const mediump float glow_weight = 0.48;
-// FIsh edit - маска уменьшена в четыре раза, поэтому шаг меньше одного её texel.
-const mediump float kernel_spacing = 0.55;
-const mediump float kernel_normalization = 0.1247;
-const mediump float bloom_threshold = 0.004;
-const mediump float bloom_soft_knee = 0.015;
-const mediump float background_suppression = 0.55;
-
-mediump vec4 sample_mask(highp vec2 uv, highp vec4 uv_bounds) {
-    mediump float inside = step(uv_bounds.x, uv.x) * step(uv.x, uv_bounds.z) *
-        step(uv_bounds.y, uv.y) * step(uv.y, uv_bounds.w);
-    highp vec2 half_texel = TEXTURE_PIXEL_SIZE * 0.5;
-    highp vec2 safe_uv = clamp(uv, uv_bounds.xy + half_texel, uv_bounds.zw - half_texel);
-    mediump vec4 mask = zTexture(safe_uv);
-    // FIsh edit - render target уже смешал RGB с alpha при копировании маски.
-    return mask * inside;
-}
-
-mediump float kernel_axis_weight(mediump float distance) {
-    return 1.0 / (1.0 + 0.8 * distance * distance);
-}
-
-mediump vec4 sample_glow(highp vec2 uv, highp vec4 uv_bounds, mediump float radius) {
-    mediump vec4 result = vec4(0.0);
-    highp vec2 texel = TEXTURE_PIXEL_SIZE * kernel_spacing * radius;
-
-    for (int y = -3; y <= 3; y++) {
-        mediump float y_weight = kernel_axis_weight(float(y));
-        for (int x = -3; x <= 3; x++) {
-            mediump float weight = kernel_axis_weight(float(x)) * y_weight;
-            result += sample_mask(uv + vec2(float(x), float(y)) * texel, uv_bounds) * weight;
-        }
-    }
-
-    return result * kernel_normalization;
-}
+const mediump float core_weight = 0.16;
+const mediump float near_weight = 0.50;
+const mediump float medium_weight = 0.32;
+const mediump float wide_weight = 0.18;
+const mediump float bloom_threshold = 0.003;
+const mediump float bloom_soft_knee = 0.012;
+const mediump float background_suppression = 0.45;
 
 void fragment() {
-    highp vec2 uv_size = bloom_texture_size * TEXTURE_PIXEL_SIZE;
-    highp vec2 uv_min = UV - UV2 * uv_size;
-    highp vec4 uv_bounds = vec4(uv_min, uv_min + uv_size);
-    highp vec2 source_uv = (UV2 - vec2(0.5)) * bloom_quad_scale + vec2(0.5);
-    highp vec2 uv = uv_min + source_uv * uv_size;
-    mediump vec4 bloom = sample_mask(uv, uv_bounds) * center_weight;
-    bloom += sample_glow(uv, uv_bounds, bloom_radius) * glow_weight * halo_strength;
+    mediump vec3 core = zTexture(UV).rgb;
+    mediump vec3 near_glow = zTextureSpec(near_texture, UV2).rgb;
+    mediump vec3 medium_glow = zTextureSpec(medium_texture, UV2).rgb;
+    mediump vec3 wide_glow = zTextureSpec(wide_texture, UV2).rgb;
 
-    mediump float bloom_luminance = zGrayscale_BT709(bloom.rgb);
+    mediump vec3 bloom = core * core_weight;
+    bloom += near_glow * near_weight;
+    bloom += medium_glow * medium_weight;
+    bloom += wide_glow * wide_weight;
 
-    // FIsh edit - мягко отсекаем слабый шум маски, не обрезая края halo.
+    mediump float luminance = zGrayscale_BT709(bloom);
     mediump float threshold_factor = smoothstep(
-        bloom_threshold - bloom_soft_knee,
+        bloom_threshold,
         bloom_threshold + bloom_soft_knee,
-        bloom_luminance);
-    mediump float bloom_peak = max(max(bloom.r, bloom.g), bloom.b);
-
-    if (bloom_peak <= 0.0 || threshold_factor <= 0.0)
-        discard;
+        luminance);
 
     highp vec2 screen_uv = FRAGCOORD.xy * SCREEN_PIXEL_SIZE;
     mediump vec3 background = zTextureSpec(SCREEN_TEXTURE, screen_uv).rgb;
     mediump float background_luminance = zGrayscale_BT709(background);
     mediump float background_factor = 1.0 - background_suppression *
-        smoothstep(0.18, 0.8, background_luminance);
-    mediump float local_light = max(max(lightSample.r, lightSample.g), lightSample.b);
-    mediump float light_factor = smoothstep(0.06, 0.3, local_light);
-    mediump float visibility_factor = mix(1.0, light_factor, respect_lighting);
-    lowp float alpha = clamp(
-        bloom_peak * threshold_factor * bloom_strength * background_factor * visibility_factor,
+        smoothstep(0.2, 0.85, background_luminance);
+    lowp float intensity = clamp(
+        bloom_strength * threshold_factor * background_factor,
         0.0,
         1.0);
 
-    if (alpha <= 0.0)
+    if (intensity <= 0.0)
         discard;
 
-    COLOR = vec4(bloom.rgb / bloom_peak, alpha);
-    lightSample = vec3(1.0);
+    // FIsh edit - normal blend даёт background + bloom без нормализации цвета.
+    COLOR = vec4(background + bloom, intensity);
 }
