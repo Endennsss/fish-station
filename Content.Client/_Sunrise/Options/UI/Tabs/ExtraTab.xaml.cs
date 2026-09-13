@@ -92,20 +92,8 @@ public sealed partial class ExtraTab : Control
 
         Control.AddOptionCheckBox(SunriseCCVars.ChatIconsEnabled, ChatIconsEnableCheckBox);
         Control.AddOptionCheckBox(SunriseCCVars.ChatPointingVisualsEnabled, ChatPointingVisualsEnableCheckBox);
-        Control.AddOptionCheckBox(SunriseCCVars.LightBloomEnabled, LightBloomEnabledCheckBox);
-        // FIsh edit - шкала bloom соответствует прямой интенсивности от 0 до 1
-        Control.AddOptionPercentSlider(SunriseCCVars.LightBloomStrength, LightBloomStrengthSlider);
-
-        LightBloomEnabledCheckBox.OnToggled += _ => UpdateLightBloomOptionsVisibility();
 
         Control.Initialize();
-        UpdateLightBloomOptionsVisibility();
-    }
-
-    private void UpdateLightBloomOptionsVisibility()
-    {
-        var enabled = LightBloomEnabledCheckBox.Pressed;
-        LightBloomStrengthSlider.Visible = enabled;
     }
 
     protected override void EnteredTree()

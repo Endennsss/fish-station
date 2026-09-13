@@ -15,6 +15,14 @@
                 <CheckBox Name="ViewportLowResCheckBox" Text="{Loc 'ui-options-vp-low-res'}" />
                 <CheckBox Name="ParallaxLowQualityCheckBox" Text="{Loc 'ui-options-parallax-low-quality'}" />
                 <CheckBox Name="AmbientOcclusionCheckBox" Text="{Loc 'ui-options-ambient-occlusion'}" />
+                <!-- FIsh edit start - настройки bloom перенесены в основную вкладку графики -->
+                <CheckBox Name="LightBloomEnabledCheckBox"
+                          Text="{Loc 'ui-options-light-bloom-enable'}"
+                          ToolTip="{Loc 'ui-options-light-bloom-enable-tooltip'}" />
+                <ui:OptionSlider Name="LightBloomStrengthSlider"
+                                 Title="{Loc 'ui-options-light-bloom-strength'}"
+                                 ToolTip="{Loc 'ui-options-light-bloom-strength-tooltip'}" />
+                <!-- FIsh edit end -->
 
                 <!-- Interface -->
                 <Label Text="{Loc 'ui-options-interface-label'}" StyleClasses="LabelKeyText"/>

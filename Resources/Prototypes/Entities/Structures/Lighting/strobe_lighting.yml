@@ -37,6 +37,12 @@
     radius: 10
     softness: 1
     offset: "0, 0.35"
+  - type: BloomOverlayVisuals
+    # FIsh edit - цветной стробоскоп с широким halo и ограниченным ядром.
+    maskOffset: "0, 0.35"
+    coreStrength: 0.45
+    haloRadius: 1.6
+    softness: 0.9
   - type: RotatingLight
   - type: Physics
     bodyType: Static

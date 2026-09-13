@@ -35,6 +35,12 @@
     energy: 2.5
     softness: 0.9
     color: "#EEEEFF"
+  - type: BloomOverlayVisuals
+    # FIsh edit - фонарь использует широкий профиль, соответствующий его большой зоне освещения.
+    maskOffset: "0, 0.2"
+    coreStrength: 0.62
+    haloRadius: 1.5
+    softness: 0.85
   - type: Anchorable
   - type: InteractionOutline
   - type: Damageable

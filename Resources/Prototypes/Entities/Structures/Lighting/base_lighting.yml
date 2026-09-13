@@ -15,6 +15,10 @@
     damagePopupType: SmallFloating
     isStructure: true
   - type: BloomOverlayVisuals
+    # FIsh edit - широкий мягкий профиль потолочной лампы без пересвеченного ядра.
+    coreStrength: 0.65
+    haloRadius: 1.4
+    softness: 0.85
   # Sunrise end
   - type: MeleeSound
     soundGroups:
@@ -179,6 +183,11 @@
     energy: 1
     softness: 0.9
     color: "#EEEEFF"
+  - type: BloomOverlayVisuals
+    # FIsh edit - LED сохраняет компактное ядро, но получает читаемый холодный halo.
+    coreStrength: 0.72
+    haloRadius: 1.3
+    softness: 0.7
   - type: DamageOnInteract
     damage:
       types:
@@ -195,6 +204,10 @@
     energy: 2.5
     softness: 0.9
     color: "#EEEEFF"
+  - type: BloomOverlayVisuals
+    coreStrength: 0.72
+    haloRadius: 1.3
+    softness: 0.7
 
 #Exterior lights
 - type: entity
@@ -205,6 +218,11 @@
   components:
   - type: PoweredLight
     hasLampOnSpawn: ExteriorLightTube
+  - type: BloomOverlayVisuals
+    # FIsh edit - внешний свет имеет широкий ореол, но умеренное ядро.
+    coreStrength: 0.55
+    haloRadius: 1.7
+    softness: 0.9
   - type: DamageOnInteract
     damage:
       types:
@@ -221,6 +239,10 @@
     energy: 4.5
     softness: 0.5
     color: "#B4FCF0"
+  - type: BloomOverlayVisuals
+    coreStrength: 0.55
+    haloRadius: 1.7
+    softness: 0.9
 
 #Sodium lights
 - type: entity
@@ -236,6 +258,10 @@
     energy: 2.5
     softness: 0.9
     color: "#FFAF38"
+  - type: BloomOverlayVisuals
+    coreStrength: 0.55
+    haloRadius: 1.45
+    softness: 0.85
   - type: DamageOnInteract
     damage:
       types:
@@ -252,6 +278,10 @@
     energy: 4
     softness: 0.5
     color: "#FFAF38"
+  - type: BloomOverlayVisuals
+    coreStrength: 0.55
+    haloRadius: 1.45
+    softness: 0.85
 
 #Small lights
 - type: entity
@@ -274,6 +304,11 @@
       radius: 6
       softness: 1.1
       enabled: true
+    - type: BloomOverlayVisuals
+      # FIsh edit - небольшой настенный светильник с коротким аккуратным halo.
+      coreStrength: 0.75
+      haloRadius: 0.9
+      softness: 0.55
     - type: Physics
       bodyType: Static
     - type: Fixtures
@@ -386,6 +421,10 @@
     energy: 1
     softness: 1
     color: "#EEEEFF"
+  - type: BloomOverlayVisuals
+    coreStrength: 0.8
+    haloRadius: 0.85
+    softness: 0.45
   - type: PoweredLight
     hasLampOnSpawn: LedLightBulb
   - type: DamageOnInteract
@@ -407,6 +446,10 @@
     energy: 0.5
     softness: 3
     color: "#ba473f"
+  - type: BloomOverlayVisuals
+    coreStrength: 0.45
+    haloRadius: 1.05
+    softness: 0.85
   - type: PoweredLight
     hasLampOnSpawn: DimLightBulb
   - type: DamageOnInteract
@@ -428,6 +471,10 @@
     energy: 1
     softness: 3
     color: "#FF8A0C"
+  - type: BloomOverlayVisuals
+    coreStrength: 0.58
+    haloRadius: 1.1
+    softness: 0.8
   - type: PoweredLight
     hasLampOnSpawn: WarmLightBulb
   - type: DamageOnInteract
@@ -468,6 +515,12 @@
     offset: "0, 0.4"
     color: "#7CFC00"
     mask: /Textures/Effects/LightMasks/double_cone.png
+  - type: BloomOverlayVisuals
+    # FIsh edit - аварийная лампа даёт выраженный цветной halo без большого белого центра.
+    maskOffset: "0, 0.4"
+    coreStrength: 0.42
+    haloRadius: 1.65
+    softness: 0.95
   - type: ApcPowerReceiver
   - type: ExtensionCableReceiver
   - type: Battery

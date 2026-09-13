@@ -20,6 +20,12 @@
     softness: 3
     offset: "0, 0"
     enabled: false
+  - type: BloomOverlayVisuals
+    # FIsh edit - компактный профиль для сигнальной настенной лампы.
+    maskOffset: "0, 0"
+    coreStrength: 0.72
+    haloRadius: 0.8
+    softness: 0.5
   - type: PoweredLight
     bulb: Bulb
     on: false

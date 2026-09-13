@@ -35,6 +35,9 @@ public sealed class PointLightingOverlay : Overlay
     private const float AutoEmissiveStrength = 1.3f;
     private const float AutoEmissiveRadius = 1.5f;
     private const float MaxBloomRadius = 2f;
+    private const float MaxLightCoreStrength = 2f;
+    private const float MinLightHaloRadius = 0.5f;
+    private const float MaxLightHaloRadius = 2f;
 
     private readonly BloomOverlayTreeSystem _bloomTree;
     private readonly IClyde _clyde;
@@ -177,8 +180,28 @@ public sealed class PointLightingOverlay : Overlay
             {
                 handle.SetTransform(Matrix3x2.Multiply(light.WorldMatrix, worldToTarget));
                 var size = light.MaskTexture.Size / (float) EyeManager.PixelsPerMeter;
-                var quad = Box2.FromDimensions(light.MaskOffset, size);
-                handle.DrawTextureRect(light.MaskTexture, quad, ScaleColor(light.Color, PointLightStrength));
+                var center = light.MaskOffset + size / 2f;
+                var softness = Math.Clamp(light.Softness, 0f, 1f);
+                var haloRadius = Math.Clamp(light.HaloRadius, MinLightHaloRadius, MaxLightHaloRadius);
+
+                // FIsh edit - отдельный слабый halo делает профиль лампы мягким, не раздувая белое ядро.
+                var haloSize = size * haloRadius;
+                var haloQuad = Box2.FromDimensions(center - haloSize / 2f, haloSize);
+                var haloStrength = PointLightStrength * (0.16f + softness * 0.24f) /
+                    MathF.Sqrt(haloRadius);
+                handle.DrawTextureRect(light.MaskTexture, haloQuad, ScaleColor(light.Color, haloStrength));
+
+                var coreStrength = Math.Clamp(light.CoreStrength, 0f, MaxLightCoreStrength);
+                if (coreStrength <= 0f)
+                    continue;
+
+                var coreScale = 1f - softness * 0.18f;
+                var coreSize = size * coreScale;
+                var coreQuad = Box2.FromDimensions(center - coreSize / 2f, coreSize);
+                handle.DrawTextureRect(
+                    light.MaskTexture,
+                    coreQuad,
+                    ScaleColor(light.Color, PointLightStrength * coreStrength));
             }
 
             foreach (var emissive in _visibleEmissives)
@@ -452,7 +475,10 @@ public sealed class PointLightingOverlay : Overlay
             worldMatrix,
             mask.Texture,
             mask.Offset,
-            pointLight.Color * bloomVisuals.BloomColor));
+            pointLight.Color * bloomVisuals.BloomColor,
+            bloomVisuals.CoreStrength,
+            bloomVisuals.HaloRadius,
+            bloomVisuals.Softness));
 
         return true;
     }
@@ -573,7 +599,10 @@ public sealed class PointLightingOverlay : Overlay
         Matrix3x2 WorldMatrix,
         Texture MaskTexture,
         Vector2 MaskOffset,
-        Color Color);
+        Color Color,
+        float CoreStrength,
+        float HaloRadius,
+        float Softness);
 
     private readonly record struct EmissiveBloomEntry(
         EntityUid Uid,
