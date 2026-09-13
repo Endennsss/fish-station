@@ -91,6 +91,7 @@ public sealed partial class FishSurgeryWindow : FancyWindow
         _additionalParts.Clear();
         AdditionalParts.Clear();
         AdditionalParts.Visible = false;
+        AdditionalPartsLabel.Visible = false;
     }
 
     /// <summary>Reconciles anatomy without resetting hover, selection or unchanged dropdown entries.</summary>
@@ -106,6 +107,7 @@ public sealed partial class FishSurgeryWindow : FancyWindow
         _additionalParts.Clear();
         AdditionalParts.Clear();
         AdditionalParts.Visible = false;
+        AdditionalPartsLabel.Visible = false;
         BodyDiagram.BeginPartsUpdate();
         foreach (var (part, name) in parts)
         {
@@ -125,6 +127,7 @@ public sealed partial class FishSurgeryWindow : FancyWindow
         AdditionalParts.AddItem(name, _additionalParts.Count);
         _additionalParts.Add(part);
         AdditionalParts.Visible = true;
+        AdditionalPartsLabel.Visible = true;
     }
 
     /// <summary>Synchronizes the diagram highlight and stage heading with BUI navigation.</summary>

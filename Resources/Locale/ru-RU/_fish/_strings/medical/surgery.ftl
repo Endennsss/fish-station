@@ -1,4 +1,7 @@
 fish-surgery-select-part = Часть тела не выбрана
+fish-surgery-patient = ПАЦИЕНТ
+fish-surgery-selected-area = ВЫБРАННАЯ ОБЛАСТЬ
+fish-surgery-additional-parts = ДОПОЛНИТЕЛЬНЫЕ ЧАСТИ ТЕЛА
 fish-surgery-empty-selection = Выберите область на схеме тела.
 fish-surgery-no-operations = Для этой части тела сейчас нет доступных операций.
 fish-surgery-operations = Доступные операции

@@ -22,6 +22,10 @@ public sealed class FishSurgerySheetlet : Sheetlet<PalettedStylesheet>
     };
     public static readonly ColorPalette Danger = ColorPalette.FromHexBase(
         "#C95555", background: Color.FromHex("#361F26"), text: Color.FromHex("#FFA7A0"));
+    public static readonly ColorPalette Incision = ColorPalette.FromHexBase(
+        "#D6A756", background: Color.FromHex("#342B1D"), text: Color.FromHex("#F0C777"));
+    public static readonly ColorPalette Retraction = ColorPalette.FromHexBase(
+        "#69C3AE", background: Color.FromHex("#18322F"), text: Color.FromHex("#93DDCD"));
 
     public override StyleRule[] GetRules(PalettedStylesheet sheet, object config)
     {
@@ -35,23 +39,40 @@ public sealed class FishSurgerySheetlet : Sheetlet<PalettedStylesheet>
             {
                 BackgroundColor = Palette.Background,
             }),
+            E<PanelContainer>().Class("FishSurgeryCard")
+                .Panel(Box(Palette.BackgroundLight, Palette.DisabledElement)),
+            E<PanelContainer>().Class("FishSurgeryDiagramFrame")
+                .Panel(FlatBox(Palette.Background, Palette.DisabledElement)),
+            E<PanelContainer>().Class("FishSurgeryReadout")
+                .Panel(CompactBox(Palette.Background, Palette.DisabledElement)),
+            E<PanelContainer>().Class("FishSurgeryContextCard")
+                .Panel(Box(Palette.BackgroundLight, Palette.DisabledElement)),
+            E<PanelContainer>().Class("FishSurgeryWorkSurface")
+                .Panel(FlatBox(Palette.Background, Palette.DisabledElement)),
+            E<PanelContainer>().Class("FishSurgeryStageHeader")
+                .Panel(FlatBox(Palette.BackgroundLight, Palette.DisabledElement)),
             E<Label>().Class("FishSurgeryHeading")
                 .Font(sheet.BaseFont.GetFont(13, FontKind.Bold)).FontColor(Palette.Text),
             E<RichTextLabel>().Class("FishSurgeryHeading")
                 .Font(sheet.BaseFont.GetFont(13, FontKind.Bold)).FontColor(Palette.Text),
-            E<PanelContainer>().Class("FishSurgeryStatusChip").Panel(new StyleBoxFlat
-            {
-                BackgroundColor = Palette.BackgroundLight,
-                BorderColor = Palette.Element,
-                BorderThickness = new Thickness(1),
-                ContentMarginLeftOverride = 6,
-                ContentMarginRightOverride = 6,
-                ContentMarginTopOverride = 2,
-                ContentMarginBottomOverride = 2,
-            }),
-            E<Label>().Class("FishSurgeryStatusText").FontColor(Palette.Element),
+            E<Label>().Class("FishSurgeryPatientName")
+                .Font(sheet.BaseFont.GetFont(14, FontKind.Bold)).FontColor(Palette.Text),
+            E<RichTextLabel>().Class("FishSurgeryContextTitle")
+                .Font(sheet.BaseFont.GetFont(14, FontKind.Bold)).FontColor(Palette.Text),
+            E<Label>().Class("FishSurgeryCaption")
+                .Font(sheet.BaseFont.GetFont(9, FontKind.Bold)).FontColor(Palette.TextDark),
+            E<PanelContainer>().Class("FishSurgeryStatusIncision")
+                .Panel(StatusBox(Incision)),
+            E<Label>().Class("FishSurgeryStatusIncisionText")
+                .Font(sheet.BaseFont.GetFont(10, FontKind.Bold)).FontColor(Incision.Text),
+            E<PanelContainer>().Class("FishSurgeryStatusRetraction")
+                .Panel(StatusBox(Retraction)),
+            E<Label>().Class("FishSurgeryStatusRetractionText")
+                .Font(sheet.BaseFont.GetFont(10, FontKind.Bold)).FontColor(Retraction.Text),
             E<Label>().Class("FishSurgeryMuted").FontColor(Palette.TextDark),
             E<RichTextLabel>().Class("FishSurgeryMuted").FontColor(Palette.TextDark),
+            E<RichTextLabel>().Class("FishSurgeryEmptyState")
+                .Font(sheet.BaseFont.GetFont(11, FontKind.Italic)).FontColor(Palette.TextDark),
             E<PanelContainer>().Class("FishSurgeryInset").Panel(Box(Palette.BackgroundLight, Palette.BackgroundLight)),
             E<PanelContainer>().Class("FishSurgeryDangerPanel").Panel(Box(Danger.Background, Danger.Element)),
             E<ProgressBar>().Class("FishSurgeryProgress")
@@ -87,6 +108,44 @@ public sealed class FishSurgerySheetlet : Sheetlet<PalettedStylesheet>
             ContentMarginRightOverride = 10,
             ContentMarginTopOverride = 6,
             ContentMarginBottomOverride = 6,
+        };
+    }
+
+    private static StyleBoxFlat FlatBox(Color background, Color border)
+    {
+        return new StyleBoxFlat
+        {
+            BackgroundColor = background,
+            BorderColor = border,
+            BorderThickness = new Thickness(1),
+        };
+    }
+
+    private static StyleBoxFlat CompactBox(Color background, Color border)
+    {
+        return new StyleBoxFlat
+        {
+            BackgroundColor = background,
+            BorderColor = border,
+            BorderThickness = new Thickness(1),
+            ContentMarginLeftOverride = 6,
+            ContentMarginRightOverride = 6,
+            ContentMarginTopOverride = 4,
+            ContentMarginBottomOverride = 4,
+        };
+    }
+
+    private static StyleBoxFlat StatusBox(ColorPalette palette)
+    {
+        return new StyleBoxFlat
+        {
+            BackgroundColor = palette.Background,
+            BorderColor = palette.Element,
+            BorderThickness = new Thickness(1),
+            ContentMarginLeftOverride = 7,
+            ContentMarginRightOverride = 7,
+            ContentMarginTopOverride = 3,
+            ContentMarginBottomOverride = 3,
         };
     }
 }

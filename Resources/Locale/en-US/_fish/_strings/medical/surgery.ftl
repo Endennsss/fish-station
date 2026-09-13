@@ -1,4 +1,7 @@
 fish-surgery-select-part = No body part selected
+fish-surgery-patient = PATIENT
+fish-surgery-selected-area = SELECTED AREA
+fish-surgery-additional-parts = ADDITIONAL BODY PARTS
 fish-surgery-empty-selection = Select an area on the body diagram.
 fish-surgery-no-operations = No operations are currently available for this body part.
 fish-surgery-operations = Available operations
