@@ -259,10 +259,12 @@ public sealed class PointLightingOverlay : Overlay
         var radiusFactor = radius / MaxBloomRadius;
         var profileWeight = level switch
         {
-            BloomMaskLevel.Core => 0.8f,
+            // FIsh edit - точный emissive-спрайт нельзя повторно рисовать поверх объектов с большим draw depth.
+            BloomMaskLevel.Core => 0f,
             BloomMaskLevel.Near => 0.85f - radiusFactor * 0.25f,
-            BloomMaskLevel.Medium => 0.25f + radiusFactor * 0.45f,
-            BloomMaskLevel.Wide => 0.05f + radiusFactor * 0.4f,
+            // FIsh edit - emissive-предметы получают более читаемый средний и широкий halo.
+            BloomMaskLevel.Medium => 0.35f + radiusFactor * 0.55f,
+            BloomMaskLevel.Wide => 0.1f + radiusFactor * 0.55f,
             _ => 0f,
         };
 

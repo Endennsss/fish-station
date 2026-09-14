@@ -33,6 +33,7 @@
   - type: PointLight
     radius: 10
     energy: 2.5
+    sourceSize: 0.3 # Fish edit - размер плафона не привязан к радиусу освещения.
     softness: 0.9
     color: "#EEEEFF"
   - type: BloomOverlayVisuals

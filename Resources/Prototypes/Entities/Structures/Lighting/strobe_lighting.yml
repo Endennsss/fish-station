@@ -35,6 +35,7 @@
     color: "#FFE4CE"
     energy: 5
     radius: 10
+    sourceSize: 0.12 # Fish edit - компактная лампа с дальним направленным светом.
     softness: 1
     offset: "0, 0.35"
   - type: BloomOverlayVisuals

@@ -1,5 +1,5 @@
 light_mode unshaded;
-blend_mode normal;
+blend_mode add;
 
 uniform sampler2D SCREEN_TEXTURE;
 uniform sampler2D near_texture;
@@ -13,7 +13,7 @@ const mediump float medium_weight = 0.32;
 const mediump float wide_weight = 0.18;
 const mediump float bloom_threshold = 0.003;
 const mediump float bloom_soft_knee = 0.012;
-const mediump float background_suppression = 0.45;
+const mediump float background_suppression = 0.35;
 
 void fragment() {
     mediump vec3 core = zTexture(UV).rgb;
@@ -45,6 +45,6 @@ void fragment() {
     if (intensity <= 0.0)
         discard;
 
-    // FIsh edit - normal blend даёт background + bloom без нормализации цвета.
-    COLOR = vec4(background + bloom, intensity);
+    // FIsh edit - добавляем только положительный bloom, не перерисовывая фон.
+    COLOR = vec4(max(bloom, vec3(0.0)), intensity);
 }

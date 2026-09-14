@@ -15,6 +15,8 @@ namespace Content.Client._Sunrise.Shaders.Bloom;
 /// </summary>
 public sealed class LightingOverlaySystem : EntitySystem
 {
+    private const float BloomStrengthTransitionSpeed = 12f;
+
     [Dependency] private readonly IConfigurationManager _configuration = default!;
     [Dependency] private readonly BloomOverlayTreeSystem _bloomTree = default!;
     [Dependency] private readonly IClyde _clyde = default!;
@@ -56,6 +58,33 @@ public sealed class LightingOverlaySystem : EntitySystem
         base.Shutdown();
     }
 
+    public override void FrameUpdate(float frameTime)
+    {
+        base.FrameUpdate(frameTime);
+
+        if (_bloomOverlay is not { } overlay)
+            return;
+
+        var difference = _bloomStrength - overlay.BloomStrength;
+        if (MathF.Abs(difference) < 0.001f)
+        {
+            overlay.BloomStrength = _bloomStrength;
+            return;
+        }
+
+        // FIsh edit - экспоненциальное сглаживание не зависит от частоты кадров.
+        var blend = 1f - MathF.Exp(-BloomStrengthTransitionSpeed * frameTime);
+        overlay.BloomStrength += difference * blend;
+    }
+
+    /// <summary>
+    /// Плавно показывает выбранную силу bloom до сохранения настройки.
+    /// </summary>
+    public void PreviewBloomStrength(float strength)
+    {
+        _bloomStrength = Math.Clamp(strength, 0f, 1f);
+    }
+
     private void OnBloomEnabledChanged(bool isEnabled)
     {
         if (!isEnabled)
@@ -94,7 +123,5 @@ public sealed class LightingOverlaySystem : EntitySystem
     private void OnBloomStrengthChanged(float strength)
     {
         _bloomStrength = Math.Clamp(strength, 0f, 1f);
-        if (_bloomOverlay is { } overlay)
-            overlay.BloomStrength = _bloomStrength;
     }
 }

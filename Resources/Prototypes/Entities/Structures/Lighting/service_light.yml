@@ -17,6 +17,7 @@
   - type: PointLight
     radius: 1.5
     energy: 0.45
+    sourceSize: 0.08 # Fish edit - маленький сигнальный источник.
     softness: 3
     offset: "0, 0"
     enabled: false
