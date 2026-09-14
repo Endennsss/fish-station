@@ -1,4 +1,5 @@
 using System.Numerics;
+using Content.Client._Fish.Dissolve; // FIsh edit - исключаем исходные emissive-слои при dissolve.
 using Content.Client.Graphics;
 using Content.Shared._Fish.Shaders.Bloom;
 using Content.Shared.Examine;
@@ -49,6 +50,7 @@ public sealed class PointLightingOverlay : Overlay
     private readonly IClyde _clyde;
     private readonly ExamineSystemShared _examine;
     private readonly EntityQuery<FishEmissiveBloomComponent> _emissiveQuery;
+    private readonly EntityQuery<DissolveComponent> _dissolveQuery;
     private readonly EntityQuery<BloomOverlayVisualsComponent> _bloomVisualsQuery;
     private readonly Dictionary<BloomMaskKey, BloomMaskData> _maskCache = [];
     private readonly EntityQuery<PointLightComponent> _pointLightQuery;
@@ -77,6 +79,7 @@ public sealed class PointLightingOverlay : Overlay
         EntityQuery<FishEmissiveBloomComponent> emissiveQuery,
         EntityQuery<BloomOverlayVisualsComponent> bloomVisualsQuery,
         EntityQuery<PointLightComponent> pointLightQuery,
+        EntityQuery<DissolveComponent> dissolveQuery,
         int zIndex,
         float strength)
     {
@@ -90,6 +93,7 @@ public sealed class PointLightingOverlay : Overlay
         _emissiveQuery = emissiveQuery;
         _bloomVisualsQuery = bloomVisualsQuery;
         _pointLightQuery = pointLightQuery;
+        _dissolveQuery = dissolveQuery;
         BloomStrength = strength;
         ZIndex = zIndex;
     }
@@ -117,6 +121,7 @@ public sealed class PointLightingOverlay : Overlay
 
         var emissiveQueryState = new EmissiveBloomQueryState(
             _visibleEmissives,
+            _dissolveQuery,
             _emissiveQuery,
             _bloomVisualsQuery,
             _sprite,
@@ -529,7 +534,8 @@ public sealed class PointLightingOverlay : Overlay
         in ComponentTreeEntry<SpriteComponent> spriteEntry)
     {
         if (!spriteEntry.Component.Visible ||
-            spriteEntry.Component.ContainerOccluded)
+            spriteEntry.Component.ContainerOccluded ||
+            queryState.DissolveQuery.HasComp(spriteEntry.Uid)) // FIsh edit - маска не учитывает PostShader.
         {
             return true;
         }
@@ -624,6 +630,7 @@ public sealed class PointLightingOverlay : Overlay
 
     private readonly record struct EmissiveBloomQueryState(
         List<EmissiveBloomEntry> VisibleEmissives,
+        EntityQuery<DissolveComponent> DissolveQuery,
         EntityQuery<FishEmissiveBloomComponent> EmissiveQuery,
         EntityQuery<BloomOverlayVisualsComponent> BloomVisualsQuery,
         SpriteSystem Sprite,

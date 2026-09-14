@@ -19,6 +19,8 @@ public sealed partial class BurnBodyBehavior : IThresholdBehavior
 
     public void Execute(EntityUid bodyId, DestructibleSystem system, EntityUid? cause = null)
     {
+        // FIsh edit - подтверждаем сгорание до удаления тела и выпадения вещей.
+        system.EntityManager.System<Content.Server._Fish.Dissolve.BurnAwaySystem>().NotifyBurn(bodyId);
         var transformSystem = system.EntityManager.System<TransformSystem>();
         var inventorySystem = system.EntityManager.System<InventorySystem>();
         var sharedPopupSystem = system.EntityManager.System<SharedPopupSystem>();

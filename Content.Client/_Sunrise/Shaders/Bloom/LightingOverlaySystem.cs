@@ -114,6 +114,7 @@ public sealed class LightingOverlaySystem : EntitySystem
             _emissiveQuery,
             _bloomVisualsQuery,
             _pointLightQuery,
+            GetEntityQuery<Content.Client._Fish.Dissolve.DissolveComponent>(), // FIsh edit
             (int) DrawDepth.Effects,
             _bloomStrength);
 
