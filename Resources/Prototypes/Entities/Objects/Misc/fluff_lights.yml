@@ -144,6 +144,18 @@
   parent: [ BaseLamp, BaseSecurityContraband ]
   description: Ultra-bright lamp for the bad cop.
   components:
+  # FIsh edit - короткий направленный луч от головки допросной лампы.
+  - type: LightShaft
+    useLightColor: true
+    followLight: true
+    offset: "0.25, -0.1"
+    direction: -35
+    coneAngle: 42
+    length: 3
+    intensity: 0.16
+    softness: 0.7
+    falloff: 1.8
+    noiseAmount: 0
   - type: Sprite
     sprite: Objects/Misc/Lights/lampint.rsi
     layers:
@@ -206,6 +218,21 @@
   parent: BaseLamp
   description: A pole with powerful mounted lights on it.
   components:
+  # FIsh edit - широкий луч прожектора; энергия PointLight уже усиливает эффект.
+  - type: LightShaft
+    useLightColor: true
+    followLight: true
+    offset: "0, 0.25"
+    direction: 90
+    coneAngle: 65
+    length: 7
+    intensity: 0.055
+    softness: 0.8
+    falloff: 1.7
+    noiseAmount: 0
+    smokeReactive: true
+    cleanAirFactor: 0.65
+    smokeMultiplier: 1.25
   - type: Item
     size: Normal
   - type: Sprite

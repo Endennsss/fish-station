@@ -1,0 +1,94 @@
+# Настроечные источники; существующие лампы станции не заменяются.
+- type: entity
+  parent: BaseItem
+  id: FishLightShaftSearchlight
+  name: shaft searchlight
+  suffix: Debug
+  description: A directional test light.
+  components:
+  - type: Sprite
+    sprite: Objects/Tools/flashlight.rsi
+    state: flashlight
+  - type: PointLight
+    enabled: true
+    color: "#D9EDFF"
+    energy: 1
+    radius: 7
+  - type: LightShaft
+    intensity: 0.16
+    length: 9
+    coneAngle: 28
+    softness: 0.4
+    falloff: 1.5
+
+- type: entity
+  parent: FishLightShaftSearchlight
+  id: FishLightShaftEmergencyRed
+  name: red shaft light
+  suffix: Debug
+  components:
+  - type: PointLight
+    color: "#FF2929"
+    radius: 4
+  - type: LightShaft
+    intensity: 0.13
+    length: 4.5
+    coneAngle: 75
+    softness: 0.65
+    smokeReactive: true
+    cleanAirFactor: 0.12
+    smokeMultiplier: 1.6
+
+- type: entity
+  parent: FishLightShaftSearchlight
+  id: FishLightShaftBrokenLamp
+  name: flickering shaft light
+  suffix: Debug
+  components:
+  - type: LightShaft
+    intensity: 0.08
+    length: 5
+    coneAngle: 45
+  - type: LightBehaviour
+    behaviours:
+    - !type:RandomizeBehaviour
+      id: shaftFlicker
+      property: Energy
+      enabled: true
+      isLooped: true
+      minDuration: 0.12
+      maxDuration: 0.3
+      startValue: 0.55
+      endValue: 1.0
+      interpolate: Linear
+
+- type: entity
+  parent: FishLightShaftSearchlight
+  id: FishLightShaftWindowLight
+  name: window shaft light
+  suffix: Debug
+  components:
+  - type: PointLight
+    color: "#FFF0D9"
+  - type: LightShaft
+    intensity: 0.07
+    length: 7
+    coneAngle: 110
+    softness: 0.9
+    falloff: 2
+
+- type: entity
+  parent: FishLightShaftSearchlight
+  id: FishLightShaftAnomaly
+  name: anomaly shaft light
+  suffix: Debug
+  components:
+  - type: PointLight
+    color: "#C681FF"
+  - type: LightShaft
+    intensity: 0.12
+    length: 6
+    coneAngle: 60
+    softness: 0.65
+    noiseAmount: 0.04
+    noiseSpeed: 1
