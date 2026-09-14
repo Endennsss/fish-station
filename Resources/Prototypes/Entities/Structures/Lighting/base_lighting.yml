@@ -219,18 +219,6 @@
   suffix: Exterior
   parent: Poweredlight
   components:
-  # FIsh edit - источник за краем стены, луч направлен от крепления наружу.
-  - type: LightShaft
-    useLightColor: true
-    followLight: true
-    offset: "0, -0.52"
-    direction: -90
-    coneAngle: 85
-    length: 6
-    intensity: 0.04
-    softness: 0.85
-    falloff: 2
-    noiseAmount: 0
   - type: PoweredLight
     hasLampOnSpawn: ExteriorLightTube
   - type: BloomOverlayVisuals
@@ -249,18 +237,6 @@
   id: AlwaysPoweredLightExterior
   suffix: Always Powered, Exterior
   components:
-  # FIsh edit - тот же профиль для постоянно запитанного наружного светильника.
-  - type: LightShaft
-    useLightColor: true
-    followLight: true
-    offset: "0, -0.52"
-    direction: -90
-    coneAngle: 85
-    length: 6
-    intensity: 0.04
-    softness: 0.85
-    falloff: 2
-    noiseAmount: 0
   - type: PointLight
     radius: 12
     energy: 4.5
