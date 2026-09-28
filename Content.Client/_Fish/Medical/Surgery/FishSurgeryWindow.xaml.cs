@@ -17,7 +17,7 @@ namespace Content.Client._Fish.Medical.Surgery;
 [GenerateTypedNameReferences]
 public sealed partial class FishSurgeryWindow : FancyWindow
 {
-    [Dependency] private readonly ILocalizationManager _loc = default!;
+    [Dependency] private ILocalizationManager _loc = default!;
 
     private const string FadeAnimationKey = "fish-surgery-fade";
     private static readonly Animation WindowFade = CreateFade(0f, 0.22f);

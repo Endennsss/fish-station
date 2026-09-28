@@ -12,6 +12,7 @@ using Content.Server.Ghost.Roles.Components;
 using Content.Server.Ghost.Roles.Raffles;
 using Content.Server.Nutrition.Components;
 using Content.Shared._Sunrise.BloodCult;
+using Content.Shared._Sunrise.BloodCult.Actions;
 using Content.Shared._Sunrise.BloodCult.Components;
 using Content.Shared._Sunrise.BloodCult.Items;
 using Content.Shared._Sunrise.BloodCult.Runes;
@@ -19,7 +20,7 @@ using Content.Shared._Sunrise.BloodCult.UI;
 using Content.Shared.Atmos.Components;
 using Content.Shared.Body.Components;
 using Content.Shared.Chat;
-using Content.Shared.Chemistry.Components.SolutionManager;
+using Content.Shared.Chemistry.Components;
 using Content.Shared.Coordinates;
 using Content.Shared.Cuffs.Components;
 using Content.Shared.Damage;
@@ -39,6 +40,8 @@ using Content.Shared.Movement.Pulling.Components;
 using Content.Shared.Popups;
 using Content.Shared.Projectiles;
 using Content.Shared.Rejuvenate;
+using Content.Shared.Silicons.Borgs.Components;
+using Content.Shared.Station;
 using Content.Shared.Verbs;
 using Microsoft.EntityFrameworkCore;
 using Robust.Shared.Audio;
@@ -87,6 +90,7 @@ namespace Content.Server._Sunrise.BloodCult.Runes.Systems
 
             SubscribeLocalEvent<CultRuneSummoningProviderComponent, SummonCultistListWindowItemSelectedMessage>(
                 OnCultistSelected);
+            SubscribeLocalEvent<BloodCultistComponent, CultSummonRitualDoAfterEvent>(OnSummonRitualDoAfter);
 
             // Rune drawing/erasing
             SubscribeLocalEvent<BloodCultistComponent, CultDrawEvent>(OnDraw);
@@ -327,17 +331,11 @@ namespace Content.Server._Sunrise.BloodCult.Runes.Systems
 
         private void HandleCollision(EntityUid uid, CultRuneBaseComponent component, ref StartCollideEvent args)
         {
-            if (!TryComp<SolutionContainerManagerComponent>(args.OtherEntity, out var solution))
-            {
-                return;
-            }
-
-            if (!_solutionContainer.TryGetSolution((args.OtherEntity, solution),
-                    VaporComponent.SolutionName,
-                    out var vapor))
+            if (!HasComp<VaporComponent>(args.OtherEntity) ||
+                !TryComp<SolutionComponent>(args.OtherEntity, out var vapor))
                 return;
 
-            if (vapor.Value.Comp.Solution.Contents.Any(x => x.Reagent.Prototype == "Holywater"))
+            if (vapor.Solution.Contents.Any(x => x.Reagent.Prototype == "Holywater"))
             {
                 Del(uid);
             }
@@ -456,6 +454,15 @@ namespace Content.Server._Sunrise.BloodCult.Runes.Systems
 
             if (state.CurrentState != MobState.Dead)
             {
+                // Любой борг при попытке обращения уничтожается, а не становится культистом.
+                if (HasComp<BorgChassisComponent>(victim.Value))
+                {
+                    _popupSystem.PopupEntity(Loc.GetString("cult-borg-destroyed"), args.User, args.User);
+                    _gibbing.Gib(victim.Value);
+                    args.Result = true;
+                    return;
+                }
+
                 var hasMind = _mindSystem.TryGetMind(victim.Value, out var mindId, out var mind);
 
                 var canConvert = !HasComp<MindShieldComponent>(victim.Value)
@@ -565,7 +572,7 @@ namespace Content.Server._Sunrise.BloodCult.Runes.Systems
                 return false;
             }
 
-            _bloodCultRuleSystem.MakeCultist(target, rule);
+            _bloodCultRuleSystem.MakeCultist(target, rule, giveStartingItems: false);
             _stunSystem.TryAddParalyzeDuration(target, TimeSpan.FromSeconds(2f));
             HealCultist(target);
 
@@ -786,7 +793,8 @@ namespace Content.Server._Sunrise.BloodCult.Runes.Systems
 
             var argsDoAfterEvent = new DoAfterArgs(_entityManager, user, TimeSpan.FromSeconds(170), ev, user) //fish-edit
             {
-                BreakOnMove = true
+                BreakOnMove = true,
+                MovementThreshold = 3f, // ритуал призыва Бога: до 3 тайлов
             };
 
             if (!_doAfterSystem.TryStartDoAfter(argsDoAfterEvent))
@@ -1054,16 +1062,72 @@ namespace Content.Server._Sunrise.BloodCult.Runes.Systems
                 return;
             }
 
-            _xform.SetCoordinates(target, xFormBase.Coordinates);
+            _popupSystem.PopupEntity(Loc.GetString("cult-summon-ritual-started"), args.Actor, args.Actor);
 
-            _audio.PlayPvs(_teleportInSound, xFormBase.Coordinates);
+            var ev = new CultSummonRitualDoAfterEvent
+            {
+                Target = GetNetEntity(target),
+                Rune = GetNetEntity(baseRune.Value),
+                Summoner = GetNetEntity(args.Actor),
+            };
+
+            // Кастует цель: удар/утаскивание цели отменяет ритуал. Допуск движения — 2 тайла.
+            var doAfter = new DoAfterArgs(_entityManager, target, TimeSpan.FromSeconds(2), ev, args.Actor)
+            {
+                BreakOnMove = true,
+                MovementThreshold = 2f,
+                BreakOnDamage = true,
+                CancelDuplicate = true,
+                NeedHand = false,
+            };
+
+            if (!_doAfterSystem.TryStartDoAfter(doAfter))
+                return;
 
             if (HasComp<CultRuneSummoningProviderComponent>(args.Actor))
             {
                 RemComp<CultRuneSummoningProviderComponent>(args.Actor);
             }
+        }
 
-            QueueDel(baseRune);
+        private void OnSummonRitualDoAfter(EntityUid uid, BloodCultistComponent component, CultSummonRitualDoAfterEvent args)
+        {
+            if (args.Cancelled || args.Handled)
+            {
+                if (args.Cancelled)
+                    _popupSystem.PopupEntity(Loc.GetString("cult-summon-ritual-interrupted"), uid, uid);
+                return;
+            }
+
+            args.Handled = true;
+
+            if (!TryGetEntity(args.Target, out var target) || !TryGetEntity(args.Rune, out var baseRune))
+            {
+                _popupSystem.PopupEntity(Loc.GetString("cult-summon-ritual-interrupted"), uid, uid);
+                return;
+            }
+
+            if (!TryComp(baseRune.Value, out TransformComponent? xFormBase))
+                return;
+
+            if (!Exists(target.Value) || !Exists(baseRune.Value))
+                return;
+
+            if (TryComp<PullableComponent>(target.Value, out var pullable) && pullable.BeingPulled)
+            {
+                _popupSystem.PopupEntity("Его кто-то держит!", uid, uid);
+                return;
+            }
+
+            if (TryComp<CuffableComponent>(target.Value, out var cuffs) && cuffs.CuffedHandCount > 0)
+            {
+                _popupSystem.PopupEntity("Он в наручниках!", uid, uid);
+                return;
+            }
+
+            _xform.SetCoordinates(target.Value, xFormBase.Coordinates);
+            _audio.PlayPvs(_teleportInSound, xFormBase.Coordinates);
+            QueueDel(baseRune.Value);
         }
 
         /*
@@ -1112,8 +1176,7 @@ namespace Content.Server._Sunrise.BloodCult.Runes.Systems
                 return false;
             }
 
-            var xformQuery = GetEntityQuery<TransformComponent>();
-            var xform = xformQuery.GetComponent(rune);
+            var xform = _xformQuery.GetComponent(rune);
 
             var projectileCount =
                 (int)MathF.Round(MathHelper.Lerp(component.MinProjectiles, component.MaxProjectiles, severity));
@@ -1148,10 +1211,9 @@ namespace Content.Server._Sunrise.BloodCult.Runes.Systems
             while (projectileCount > 0)
             {
                 var target = _random.Pick(list);
-                var targetCoords = xformQuery.GetComponent(target).Coordinates.Offset(_random.NextVector2(0.5f));
-                var flammable = GetEntityQuery<FlammableComponent>();
+                var targetCoords = _xformQuery.GetComponent(target).Coordinates.Offset(_random.NextVector2(0.5f));
 
-                if (!flammable.TryGetComponent(target, out var fl))
+                if (!_flammableQuery.TryGetComponent(target, out var fl))
                     continue;
 
                 fl.FireStacks += _random.Next(1, 3);
@@ -1244,10 +1306,18 @@ namespace Content.Server._Sunrise.BloodCult.Runes.Systems
 
         private HashSet<EntityUid> GatherCultists(EntityUid uid, float range)
         {
-            var entities = _lookup.GetEntitiesInRange(uid, range, LookupFlags.Dynamic);
-            entities.RemoveWhere(x => !HasComp<BloodCultistComponent>(x) && !HasComp<ConstructComponent>(x));
+            var entities = _lookup.GetEntitiesInRange(uid, range, LookupFlags.Dynamic | LookupFlags.Sundries);
+            entities.RemoveWhere(x => !IsCultistEquivalent(x));
 
             return entities;
+        }
+
+        /// <summary>
+        /// Культист или конструкт — для подсчёта на рунах/ритуалах.
+        /// </summary>
+        public bool IsCultistEquivalent(EntityUid uid)
+        {
+            return HasComp<BloodCultistComponent>(uid) || HasComp<ConstructComponent>(uid);
         }
 
         private void SpawnRune(EntityUid uid, string? rune)
@@ -1290,7 +1360,10 @@ namespace Content.Server._Sunrise.BloodCult.Runes.Systems
             return true;
         }
 
-        private bool IsAllowedToDraw(EntityUid uid)
+        /// <summary>
+        /// Можно ли рисовать руну: любая грид+тайл (станция, шаттл, планетойд).
+        /// </summary>
+        public bool IsAllowedToDraw(EntityUid uid)
         {
             var transform = Transform(uid);
             var gridUid = transform.GridUid;
@@ -1308,6 +1381,7 @@ namespace Content.Server._Sunrise.BloodCult.Runes.Systems
                 return false;
             }
 
+            // Достаточно любой грид+тайл: станция, шаттл, планетойд экспедиции.
             return true;
         }
 

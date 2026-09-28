@@ -16,12 +16,12 @@ namespace Content.Client._Fish.Medical.Surgery;
 /// <summary>
 /// Front-facing anatomical selector. Only parts supplied by the surgery UI state can be selected.
 /// </summary>
-public sealed class FishSurgeryBodyDiagram : Control
+public sealed partial class FishSurgeryBodyDiagram : Control
 {
-    [Dependency] private readonly IEntityManager _entities = default!;
-    [Dependency] private readonly IResourceCache _resources = default!;
-    [Dependency] private readonly ILocalizationManager _loc = default!;
-    [Dependency] private readonly MarkingManager _marking = default!;
+    [Dependency] private IEntityManager _entities = default!;
+    [Dependency] private IResourceCache _resources = default!;
+    [Dependency] private ILocalizationManager _loc = default!;
+    [Dependency] private MarkingManager _marking = default!;
 
     // Координаты общего холста частей тела 32x32. Кисти и стопы имеют расширенные области нажатия.
     private static readonly Region[] Regions =

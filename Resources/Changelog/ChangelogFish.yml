@@ -491,3 +491,220 @@
   media:
   - url: https://github.com/user-attachments/assets/ba4bd207-7f4f-4c89-b301-476246d19534
     description: idle
+- author: dng-cher
+  time: '2026-09-11T13:43:34.0000000+00:00'
+  changes:
+  - type: Add
+    message: Рандомная ротация шаттлов для станции.
+  id: 49
+  url: https://github.com/makura-games/fish-station/pull/442
+- author: Ende
+  time: '2026-09-11T13:48:57.0000000+00:00'
+  changes:
+  - type: Fix
+    message: Фикс рекомендации по лечению от радиации
+  id: 50
+  url: https://github.com/makura-games/fish-station/pull/441
+- author: Pifagor, Kaiten
+  time: '2026-09-11T14:29:56.0000000+00:00'
+  changes:
+  - type: Add
+    message: Конструкты кровавого культа (строитель, джаггернаут, жнец) теперь имеют красное переключаемое ПНВ.
+  - type: Tweak
+    message: 'Джаггернаут переработан: скорость 3.5, тяжёлые шаги и отбрасывание при атаке с кулдауном 5 секунд.'
+  - type: Tweak
+    message: Руны культа можно рисовать на любом гриде с тайлом (станция, шаттл, планетоид).
+  - type: Fix
+    message: Слаймолюди, арахниды, ксено и яутжа теперь корректно дают кровь для ритуалов крови (включая лужи).
+  - type: Fix
+    message: Любой киборг при попытке обращения разрушается, а не становится культистом.
+  - type: Tweak
+    message: Стартовые культисты получают 30 рунического металла; обращённые и поздние присоединившиеся — нет.
+  - type: Tweak
+    message: Призыв культиста кастуется 2 секунды (до 2 тайлов до прерывания), призыв Бога — до 3 тайлов до прерывания.
+  - type: Tweak
+    message: Личный телепорт культа — 2 секунды и 1 тайл дистанция отмены, прерывается уроном или сдвигом. Телепорт руна на руна мгновенный как и была.
+  - type: Fix
+    message: После перехода в призрака осколок души снова становится доступен как роль призрака.
+  id: 51
+  url: https://github.com/makura-games/fish-station/pull/368
+- author: Pifagor, Kaiten
+  time: '2026-09-11T16:35:51.0000000+00:00'
+  changes:
+  - type: Tweak
+    message: 'Планетарная Война полностью переносится на архитектуру Sunrise — без
+
+      временных прототипов, workaround''ов и дублирующих систем.'
+  - type: Tweak
+    message: Разнообразные правки режима согласно указаниям Мизелия.
+  - type: Tweak
+    message: Роли режимы больше не отображаются в должностях персонажа.
+  id: 52
+  url: https://github.com/makura-games/fish-station/pull/372
+- author: Kaiten
+  time: '2026-09-11T16:36:08.0000000+00:00'
+  changes:
+  - type: Tweak
+    message: По просьбе Финекса фоксиум теперь превращает в лису от 50 единиц. Слава фыр!
+  id: 53
+  url: https://github.com/makura-games/fish-station/pull/440
+- author: Kaiten
+  time: '2026-09-11T20:45:46.0000000+00:00'
+  changes:
+  - type: Tweak
+    message: Магия событий мага теперь затрагиает только текущий грид (будь то корабль, планетойд или станция) кроме события показа призраков.
+  id: 54
+  url: https://github.com/makura-games/fish-station/pull/445
+- author: Kaiten
+  time: '2026-09-12T20:54:51.0000000+00:00'
+  changes:
+  - type: Add
+    message: Перезарядка в 3 минуты  для регенерации стимулятора в ампуле скафандра Мурмилло.
+  - type: Remove
+    message: Выпадение активной версии MOD-ботинок Мурмилло  из ящика босса. Теперь просим ученых на ядра Р.И.Г.
+  - type: Tweak
+    message: 'Параметры защиты скафандра Мурмилло : сопротивление колющему урону установлено на 70% c 80% а фиксированное снижение урона понижено до 2 единиц c 9.'
+  - type: Tweak
+    message: Вероятность выпадения неактивных MOD-ботинок Мурмилло из ящика босса увеличена с 0.5 до 0.6.
+  - type: Fix
+    message: Исправлена практически мгновенная перезарядка ампулы скафандра Мурмилло (была 1 секунда).
+  id: 55
+  url: https://github.com/makura-games/fish-station/pull/446
+- author: Endennsss
+  time: '2026-09-12T21:09:46.0000000+00:00'
+  changes:
+  - type: Add
+    message: Добавлена возможность одновременно устанавливать и снимать дополнительные коды угрозы.
+  - type: Add
+    message: Инженерная и медицинская консоли связи получили доступ к своим дополнительным кодам.
+  - type: Add
+    message: Консоль ЦК теперь позволяет выбрать станцию для изменения кода угрозы.
+  - type: Add
+    message: Добавлена консоль ДСО
+  - type: Fix
+    message: Дополнительные коды теперь корректно влияют на доступы, объявления и аварийное освещение.
+  id: 56
+  url: https://github.com/makura-games/fish-station/pull/444
+  media:
+  - url: https://github.com/user-attachments/assets/817bb877-3183-4868-a5b2-b26beee27a75
+    description: Content Client_A8R73BiUkI
+- author: Kaiten
+  time: '2026-09-12T21:50:02.0000000+00:00'
+  changes:
+  - type: Tweak
+    message: Переработан набор достижений, что палит режим игры (тех кто абузил по попе). Теперь они даются в конце раунда.
+  id: 57
+  url: https://github.com/makura-games/fish-station/pull/447
+- author: TiFeRi
+  time: '2026-09-13T09:24:19.0000000+00:00'
+  changes:
+  - type: Add
+    message: Добавлен СБ шаттл рыбы.
+  - type: Remove
+    message: Убраны шаттлы СР.
+  - type: Tweak
+    message: Добавлены газодобытчики.
+  id: 58
+  url: https://github.com/makura-games/fish-station/pull/448
+- author: ВАШЕ_ИМЯ
+  time: '2026-09-13T14:26:54.0000000+00:00'
+  changes:
+  - type: Fix
+    message: После перезаписи доступов теперь ничего не ломается
+  id: 59
+  url: https://github.com/makura-games/fish-station/pull/449
+- author: dan4ikk3
+  time: '2026-09-17T12:08:46.0000000+00:00'
+  changes:
+  - type: Add
+    message: Добавлен скафандр EVA РХБЗЗ в аплинк РХБЗЗ
+  - type: Tweak
+    message: 'Изменен урон для тактического топора. Теперь он наносит:
+
+      18 порезов и 5 структурного урона в одной руке; 25 порезов и 10 структурного урона при метании.'
+  - type: Tweak
+    message: 'Изминения резистов экзокостюма РХБЗЗ: +10% защиты от ударов, +30% защиты от режущего урона.'
+  - type: Tweak
+    message: 'Изменения резистов EVA РХБЗЗ: +20% к ударным, +10% к режущим, +10% к колющим.'
+  - type: Fix
+    message: Возвращение роли Лидера РХБЗЗ. Исправлен баг с невозможностью его спавна.
+  id: 60
+  url: https://github.com/makura-games/fish-station/pull/453
+- author: TiFeRi
+  time: '2026-09-17T21:16:11.0000000+00:00'
+  changes:
+  - type: Tweak
+    message: пачка фиксов карт
+  id: 61
+  url: https://github.com/makura-games/fish-station/pull/459
+- author: dan4ikk3
+  time: '2026-09-18T12:41:39.0000000+00:00'
+  changes:
+  - type: Add
+    message: Добавлен поиск по IC, OCC и должности в манифесте после конца раунда
+  id: 62
+  url: https://github.com/makura-games/fish-station/pull/462
+- author: dan4ikk3
+  time: '2026-09-18T20:53:25.0000000+00:00'
+  changes:
+  - type: Tweak
+    message: Коробка для бутылочек теперь занимает 2х2 в инвентаре. Хранилище осталось прежним.
+  - type: Fix
+    message: Теперь нельзя класть бутылочки в пачку из под сигарет
+  id: 63
+  url: https://github.com/makura-games/fish-station/pull/465
+- author: TiFeRi
+  time: '2026-09-19T22:33:18.0000000+00:00'
+  changes:
+  - type: Tweak
+    message: Снижение стоимости подкрепления ЯО (с 30ТК до 18ТК).
+  - type: Tweak
+    message: Добавление подкрепления ЯО лон оперу.
+  id: 64
+  url: https://github.com/makura-games/fish-station/pull/464
+- author: erikundel
+  time: '2026-09-22T17:37:39.0000000+00:00'
+  changes:
+  - type: Tweak
+    message: вернул в спавнменю вентиляторы
+  id: 65
+  url: https://github.com/makura-games/fish-station/pull/468
+- author: NekutGit
+  time: '2026-09-22T20:28:39.0000000+00:00'
+  changes:
+  - type: Tweak
+    message: Бита Хоумран больше не отбрасывает цели с включёнными магнитными ботинками
+  id: 66
+  url: https://github.com/makura-games/fish-station/pull/454
+- author: Endennsss
+  time: '2026-09-24T18:56:10.0000000+00:00'
+  changes:
+  - type: Fix
+    message: Фиксы рекомендуемого лекарства в анализаторе здоровья
+  - type: Fix
+    message: Фикс доступов в ЖК
+  id: 67
+  url: https://github.com/makura-games/fish-station/pull/473
+- author: NekutGit
+  time: '2026-09-24T18:59:14.0000000+00:00'
+  changes:
+  - type: Add
+    message: Добавлены рецепты создания для портативных консолей атмосферных угроз и управления питанием
+  - type: Tweak
+    message: В технологию "Продвинутые инструменты" добавлено изучение для двух портативных консолей атмосферных угроз и управления питанием
+  id: 68
+  url: https://github.com/makura-games/fish-station/pull/472
+  media:
+  - url: https://github.com/user-attachments/assets/9350eed5-3648-46e1-9f6f-c26838c999d8
+    description: IMG_20260923_224428_115
+  - url: https://github.com/user-attachments/assets/4a7f7cd0-4171-4f58-8721-20c4094de434
+    description: IMG_20260923_224427_719
+- author: Endennsss
+  time: '2026-09-24T19:04:55.0000000+00:00'
+  changes:
+  - type: Add
+    message: Молнии в спавн меню
+  id: 69
+  url: https://github.com/makura-games/fish-station/pull/471
+  media:
+  - url: https://github.com/user-attachments/assets/5779808e-b0c3-4145-9d47-02ce3e365af7

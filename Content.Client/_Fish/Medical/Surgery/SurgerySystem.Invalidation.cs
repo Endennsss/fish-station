@@ -7,7 +7,7 @@ namespace Content.Client._Starlight.Medical.Surgery;
 
 public sealed partial class SurgerySystem
 {
-    [Dependency] private readonly IPlayerManager _fishPlayer = default!;
+    [Dependency] private IPlayerManager _fishPlayer = default!;
 
     private void InitializeFishUiInvalidation()
     {

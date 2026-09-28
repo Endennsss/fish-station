@@ -140,8 +140,6 @@
         enum.WiresUiKey.Key:
           type: WiresBoundUserInterface
   - type: RadarConsole
-  - type: WorldLoader
-    radius: 256
   - type: PointLight
     radius: 1.5
     energy: 4.0
@@ -210,8 +208,6 @@
       - Syndicate
   - type: RadarConsole
     maxRange: 384
-  - type: WorldLoader
-    radius: 1536
   - type: PointLight
     radius: 1.5
     energy: 4.0
@@ -787,8 +783,9 @@
     energy: 4.0
     color: "#3c5eb5"
   - type: Damageable
-    damageContainer: StructuralInorganic
     damageModifierSet: StructuralMetallicStrong
+  - type: Injurable
+    damageContainer: StructuralInorganic
 
 - type: entity
   parent: ComputerComms
@@ -818,6 +815,7 @@
     global: true #announce to everyone they're about to fuck shit up
     announceSentBy: false # The title already says who they are.
     sound: /Audio/Announcements/war.ogg
+    allowedAlertLevels: [] # Sunrise-Edit - вражеская консоль не управляет кодами станции
   - type: Computer
     board: SyndicateCommsComputerCircuitboard
   - type: PointLight
@@ -852,6 +850,7 @@
     global: true #announce to everyone they're about to fuck shit up
     announceSentBy: false
     sound: /Audio/Announcements/war.ogg
+    allowedAlertLevels: [] # Sunrise-Edit - консоль мага не управляет кодами станции
   - type: Computer
     board: WizardCommsComputerCircuitboard
   - type: PointLight
@@ -884,6 +883,9 @@
     color: "#1d8bad"
     canShuttle: false
     global: true
+    allowedAlertLevels: [green, blue, violet, yellow, red, gamma, delta] # Sunrise-Edit
+    forceAlertLevelChanges: true # Sunrise-Edit
+    canSelectAlertStation: true # Sunrise-Edit
   - type: Computer
     board: CentcommCommsComputerCircuitboard
   - type: PointLight
@@ -1303,8 +1305,9 @@
     speechVerb: Robotic
     speechSounds: Pai
   - type: Damageable
-    damageContainer: StructuralInorganic
     damageModifierSet: StructuralMetallicStrong
+  - type: Injurable
+    damageContainer: StructuralInorganic
   - type: GuideHelp
     guides:
     - Cloning

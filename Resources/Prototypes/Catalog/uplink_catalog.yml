@@ -1220,6 +1220,16 @@
   categories:
   - UplinkDisruption
 
+- type: listing
+  id: UplinkTravelCamera
+  name: uplink-travel-camera-name
+  description: uplink-travel-camera-desc
+  productEntity: TravelCamera
+  cost:
+    Telecrystal: 1
+  categories:
+  - UplinkDeception
+
 # Note: Removed for the time being until surgery/newmed is added. Considered bloat until then.
 - type: listing # Sunrise-edit
   id: UplinkDuffelSurgery
@@ -1408,7 +1418,7 @@
   productEntity: ReinforcementRadioSyndicateNukeops
   icon: { sprite: Objects/Devices/communication.rsi, state: old-radio-nukeop }
   cost:
-    Telecrystal: 30
+    Telecrystal: 18 # FIsh edit
   categories:
   - UplinkAllies
   conditions:
@@ -1416,6 +1426,7 @@
     whitelist:
       tags:
       - NukeOpsUplink
+      - LoneOpsUplink # FIsh edit
 
 # Move to _Sunrise
 #- type: listing
@@ -2432,3 +2443,20 @@
   - !type:BuyerJobCondition
     whitelist:
     - Lawyer
+
+#Objective items
+
+- type: listing
+  id: uplinkHijackBeacon
+  name: uplink-hijack-beacon-name
+  description: uplink-hijack-beacon-desc
+  productEntity: HijackBeacon
+  categories:
+    - UplinkObjective
+  conditions:
+  - !type:ListingLimitedStockCondition
+    stock: 1
+  - !type:BuyerObjectiveWhitelistCondition
+    whitelist:
+      components:
+      - HijackTradeStationCondition

@@ -9,7 +9,7 @@ namespace Content.Client._Starlight.Medical.Surgery;
 // https://github.com/RMC-14/RMC-14
 public sealed partial class SurgerySystem : SharedSurgerySystem // FIsh edit - событийная инвалидация Fish UI вынесена в partial
 {
-    [Dependency] private readonly UserInterfaceSystem _ui = default!;
+    [Dependency] private UserInterfaceSystem _ui = default!;
 
     public override void Initialize()
     {
