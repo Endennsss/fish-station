@@ -52,6 +52,9 @@ public sealed partial class FishSurgeryWindow : FancyWindow
     {
         RobustXamlLoader.Load(this);
         IoCManager.InjectDependencies(this);
+        // Подписи навигации размещены рядом с иконками вместо встроенной подписи Button.
+        SurgeriesButton.Label.Visible = false;
+        StepsButton.Label.Visible = false;
         BodyDiagram.PartSelected += part => PartSelected?.Invoke(part);
         BodyDiagram.HoveredPartChanged += name => SetLabelText(HoverName, name ?? _loc.GetString("fish-surgery-hover-hint"));
         CancelAction.OnPressed += _ => DismissConfirmation();
@@ -154,8 +157,8 @@ public sealed partial class FishSurgeryWindow : FancyWindow
         SetLabelText(StageTitle, _loc.GetString(showingSteps ? "fish-surgery-steps" : "fish-surgery-operations"));
         SetButtonText(PartsButton, _loc.GetString("fish-surgery-clear-selection"));
         PartsButton.Visible = !choosingPart && !showingSteps;
-        SetButtonText(SurgeriesButton, _loc.GetString("fish-surgery-back-operations"));
-        SetButtonText(StepsButton, _loc.GetString("fish-surgery-back-prerequisite"));
+        SetLabelText(SurgeriesButtonLabel, _loc.GetString("fish-surgery-back-operations"));
+        SetLabelText(StepsButtonLabel, _loc.GetString("fish-surgery-back-prerequisite"));
         SurgeriesButton.Visible = showingSteps;
         StepsButton.Visible = showingSteps && !StepsButton.Disabled;
     }
@@ -183,10 +186,15 @@ public sealed partial class FishSurgeryWindow : FancyWindow
     private void UpdateAreaHeading()
     {
         var title = _partName ?? _loc.GetString("fish-surgery-select-part");
-        if (_operationName != null && _showingSteps)
-            title = _loc.GetString("fish-surgery-context", ("part", title), ("operation", _operationName));
         SetOptionalText(SelectedPart, title);
+        var showOperation = _operationName != null && _showingSteps;
+        OperationArrow.Visible = showOperation;
+        OperationName.Visible = showOperation;
+        SetOptionalText(OperationName, showOperation ? _operationName : null);
+        if (showOperation)
+            title = _loc.GetString("fish-surgery-context", ("part", title), ("operation", _operationName!));
         SelectedPart.ToolTip = title;
+        OperationName.ToolTip = title;
     }
 
     /// <summary>Clears row animation state before changing operations.</summary>

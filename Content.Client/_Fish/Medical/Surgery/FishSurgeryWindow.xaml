@@ -27,7 +27,13 @@
                     <BoxContainer Orientation="Horizontal" SeparationOverride="8">
                         <BoxContainer Orientation="Vertical" SeparationOverride="2" HorizontalExpand="True">
                             <Label Text="{Loc 'fish-surgery-selected-area'}" StyleClasses="FishSurgeryCaption" />
-                            <RichTextLabel Name="SelectedPart" StyleClasses="FishSurgeryContextTitle" />
+                            <BoxContainer Orientation="Horizontal" SeparationOverride="8">
+                                <RichTextLabel Name="SelectedPart" StyleClasses="FishSurgeryContextTitle" VerticalAlignment="Center" />
+                                <TextureRect Name="OperationArrow" Visible="False" SetSize="14 14" VerticalAlignment="Center"
+                                    CanShrink="True" Stretch="KeepAspectCentered" TexturePath="/Textures/Interface/Default/right_arrow.svg.192dpi.png" />
+                                <RichTextLabel Name="OperationName" StyleClasses="FishSurgeryContextTitle"
+                                    HorizontalExpand="True" VerticalAlignment="Center" Visible="False" />
+                            </BoxContainer>
                         </BoxContainer>
                         <PanelContainer Name="IncisionStatus" StyleClasses="FishSurgeryStatusIncision" Visible="False">
                             <Label Text="{Loc 'fish-surgery-incision-open'}" StyleClasses="FishSurgeryStatusIncisionText" />
@@ -39,8 +45,20 @@
                 </PanelContainer>
                 <BoxContainer Orientation="Horizontal" SeparationOverride="6">
                     <Button Name="PartsButton" Access="Public" StyleClasses="FishSurgeryButton" />
-                    <Button Name="SurgeriesButton" Access="Public" StyleClasses="FishSurgeryButton" />
-                    <Button Name="StepsButton" Access="Public" StyleClasses="FishSurgeryButton" />
+                    <Button Name="SurgeriesButton" Access="Public" StyleClasses="FishSurgeryButton">
+                        <BoxContainer Orientation="Horizontal" SeparationOverride="6">
+                            <TextureRect SetSize="14 14" VerticalAlignment="Center" CanShrink="True" Stretch="KeepAspectCentered"
+                                TexturePath="/Textures/Interface/Default/left_arrow.svg.192dpi.png" />
+                            <Label Name="SurgeriesButtonLabel" VerticalAlignment="Center" />
+                        </BoxContainer>
+                    </Button>
+                    <Button Name="StepsButton" Access="Public" StyleClasses="FishSurgeryButton">
+                        <BoxContainer Orientation="Horizontal" SeparationOverride="6">
+                            <TextureRect SetSize="14 14" VerticalAlignment="Center" CanShrink="True" Stretch="KeepAspectCentered"
+                                TexturePath="/Textures/Interface/Default/left_arrow.svg.192dpi.png" />
+                            <Label Name="StepsButtonLabel" VerticalAlignment="Center" />
+                        </BoxContainer>
+                    </Button>
                 </BoxContainer>
                 <PanelContainer StyleClasses="FishSurgeryWorkSurface" VerticalExpand="True">
                     <BoxContainer Orientation="Vertical">
