@@ -29,7 +29,8 @@
                             <Label Text="{Loc 'fish-surgery-selected-area'}" StyleClasses="FishSurgeryCaption" />
                             <BoxContainer Orientation="Horizontal" SeparationOverride="8">
                                 <RichTextLabel Name="SelectedPart" StyleClasses="FishSurgeryContextTitle" VerticalAlignment="Center" />
-                                <fish:FishSurgeryArrow Name="OperationArrow" Visible="False" SetSize="14 14" VerticalAlignment="Center" />
+                                <Label Name="OperationArrow" Text="→" StyleClasses="FishSurgeryArrow" Visible="False"
+                                    VerticalAlignment="Center" VAlign="Center" />
                                 <RichTextLabel Name="OperationName" StyleClasses="FishSurgeryContextTitle"
                                     HorizontalExpand="True" VerticalAlignment="Center" Visible="False" />
                             </BoxContainer>
@@ -46,13 +47,13 @@
                     <Button Name="PartsButton" Access="Public" StyleClasses="FishSurgeryButton" />
                     <Button Name="SurgeriesButton" Access="Public" StyleClasses="FishSurgeryButton">
                         <BoxContainer Orientation="Horizontal" SeparationOverride="6">
-                            <fish:FishSurgeryArrow PointLeft="True" SetSize="14 14" VerticalAlignment="Center" />
+                            <Label Text="←" StyleClasses="FishSurgeryArrow" VerticalAlignment="Center" VAlign="Center" />
                             <Label Name="SurgeriesButtonLabel" VerticalAlignment="Center" />
                         </BoxContainer>
                     </Button>
                     <Button Name="StepsButton" Access="Public" StyleClasses="FishSurgeryButton">
                         <BoxContainer Orientation="Horizontal" SeparationOverride="6">
-                            <fish:FishSurgeryArrow PointLeft="True" SetSize="14 14" VerticalAlignment="Center" />
+                            <Label Text="←" StyleClasses="FishSurgeryArrow" VerticalAlignment="Center" VAlign="Center" />
                             <Label Name="StepsButtonLabel" VerticalAlignment="Center" />
                         </BoxContainer>
                     </Button>
