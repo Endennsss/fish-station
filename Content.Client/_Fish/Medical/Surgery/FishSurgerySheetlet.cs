@@ -59,6 +59,7 @@ public sealed class FishSurgerySheetlet : Sheetlet<PalettedStylesheet>
                 .Font(sheet.BaseFont.GetFont(14, FontKind.Bold)).FontColor(Palette.Text),
             E<RichTextLabel>().Class("FishSurgeryContextTitle")
                 .Font(sheet.BaseFont.GetFont(14, FontKind.Bold)).FontColor(Palette.Text),
+            E<FishSurgeryArrow>().Modulate(Palette.Text),
             E<Label>().Class("FishSurgeryCaption")
                 .Font(sheet.BaseFont.GetFont(9, FontKind.Bold)).FontColor(Palette.TextDark),
             E<PanelContainer>().Class("FishSurgeryStatusIncision")

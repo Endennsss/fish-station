@@ -29,8 +29,7 @@
                             <Label Text="{Loc 'fish-surgery-selected-area'}" StyleClasses="FishSurgeryCaption" />
                             <BoxContainer Orientation="Horizontal" SeparationOverride="8">
                                 <RichTextLabel Name="SelectedPart" StyleClasses="FishSurgeryContextTitle" VerticalAlignment="Center" />
-                                <TextureRect Name="OperationArrow" Visible="False" SetSize="14 14" VerticalAlignment="Center"
-                                    CanShrink="True" Stretch="KeepAspectCentered" TexturePath="/Textures/Interface/Default/right_arrow.svg.192dpi.png" />
+                                <fish:FishSurgeryArrow Name="OperationArrow" Visible="False" SetSize="14 14" VerticalAlignment="Center" />
                                 <RichTextLabel Name="OperationName" StyleClasses="FishSurgeryContextTitle"
                                     HorizontalExpand="True" VerticalAlignment="Center" Visible="False" />
                             </BoxContainer>
@@ -47,15 +46,13 @@
                     <Button Name="PartsButton" Access="Public" StyleClasses="FishSurgeryButton" />
                     <Button Name="SurgeriesButton" Access="Public" StyleClasses="FishSurgeryButton">
                         <BoxContainer Orientation="Horizontal" SeparationOverride="6">
-                            <TextureRect SetSize="14 14" VerticalAlignment="Center" CanShrink="True" Stretch="KeepAspectCentered"
-                                TexturePath="/Textures/Interface/Default/left_arrow.svg.192dpi.png" />
+                            <fish:FishSurgeryArrow PointLeft="True" SetSize="14 14" VerticalAlignment="Center" />
                             <Label Name="SurgeriesButtonLabel" VerticalAlignment="Center" />
                         </BoxContainer>
                     </Button>
                     <Button Name="StepsButton" Access="Public" StyleClasses="FishSurgeryButton">
                         <BoxContainer Orientation="Horizontal" SeparationOverride="6">
-                            <TextureRect SetSize="14 14" VerticalAlignment="Center" CanShrink="True" Stretch="KeepAspectCentered"
-                                TexturePath="/Textures/Interface/Default/left_arrow.svg.192dpi.png" />
+                            <fish:FishSurgeryArrow PointLeft="True" SetSize="14 14" VerticalAlignment="Center" />
                             <Label Name="StepsButtonLabel" VerticalAlignment="Center" />
                         </BoxContainer>
                     </Button>
