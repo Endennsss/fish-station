@@ -184,6 +184,7 @@ public sealed class FishSurgeryWindowTest
             Assert.That(window.Steps.Children.ToArray(), Is.EqualTo(new[] { current, future }));
             Assert.That(current.HasRunningAnimation("fish-surgery-fade"), Is.True);
         });
+        // Ждём окончания StepTransition (0.35 с) с запасом, затем проверяем отсутствие повторного запуска.
         await pair.RunTicksSync(60);
         await client.WaitPost(() =>
         {
@@ -444,6 +445,62 @@ public sealed class FishSurgeryWindowTest
         await pair.CleanReturnAsync();
     }
 
+    /// <summary>Истечение ожидания ответа разблокирует этап без движения и нового снимка состояния.</summary>
+    [Test]
+    public async Task RejectedRequestUnlocksStepWithoutSnapshot()
+    {
+        await using var pair = await PoolManager.GetServerClient(new PoolSettings { Connected = true });
+        var client = pair.Client;
+        SurgeryBui bui = null;
+        EntityUid patient = default;
+        EntityUid surgery = default;
+        SurgeryStepButton firstStep = null;
+        var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var requestUntil = typeof(SurgeryBui).GetField("_fishRequestUntil", flags)!;
+
+        await client.WaitPost(() =>
+        {
+            patient = client.EntMan.SpawnEntity("AppearanceHuman", MapCoordinates.Nullspace);
+            var body = client.EntMan.GetComponent<BodyComponent>(patient);
+            var hand = body.Organs!.ContainedEntities.First(uid =>
+                client.EntMan.GetComponent<MetaDataComponent>(uid).EntityPrototype?.ID == "OrganHumanHandLeft");
+            client.EntMan.EnsureComponent<SurgeryProgressComponent>(hand);
+            surgery = client.EntMan.SpawnEntity("SurgeryOpenIncision", MapCoordinates.Nullspace);
+            var netHand = client.EntMan.GetNetEntity(hand);
+            var state = new SurgeryBuiState
+            {
+                Choices = new() { [netHand] = new() { ("SurgeryOpenIncision", "", false) } },
+            };
+            bui = new SurgeryBui(patient, SurgeryUIKey.Key);
+            typeof(BoundUserInterface).GetProperty("State", flags)!.SetValue(bui, state);
+            typeof(SurgeryBui).GetMethod("UpdateState", flags)!.Invoke(bui, new object[] { state });
+            typeof(SurgeryBui).GetMethod("OnPartPressed", flags)!
+                .Invoke(bui, new object[] { netHand, state.Choices[netHand] });
+            Entity<SurgeryComponent> operation = (surgery, client.EntMan.GetComponent<SurgeryComponent>(surgery));
+            typeof(SurgeryBui).GetMethod("OnSurgeryPressed", flags)!
+                .Invoke(bui, new object[] { operation, netHand, (EntProtoId) "SurgeryOpenIncision" });
+            var window = (FishSurgeryWindow) typeof(SurgeryBui).GetField("_window", flags)!.GetValue(bui)!;
+            firstStep = window.Steps.Children.OfType<SurgeryStepButton>().First();
+        });
+        await client.WaitAssertion(() => Assert.That(firstStep.Button.Disabled, Is.False));
+        await client.WaitPost(() =>
+        {
+            requestUntil.SetValue(bui, client.Timing.CurTime + TimeSpan.FromHours(1));
+            bui.Update();
+        });
+        await client.WaitAssertion(() => Assert.That(firstStep.Button.Disabled, Is.True));
+        await client.WaitPost(() => requestUntil.SetValue(bui, TimeSpan.Zero));
+        // Даём FrameUpdate обработать истёкшее ожидание и отложенное обновление кнопок.
+        await pair.RunTicksSync(2);
+        await client.WaitAssertion(() => Assert.That(firstStep.Button.Disabled, Is.False));
+        await client.WaitPost(() =>
+        {
+            bui.Dispose();
+            client.EntMan.DeleteEntity(patient);
+            client.EntMan.DeleteEntity(surgery);
+        });
+        await pair.CleanReturnAsync();
+    }
     /// <summary>Повторное открытие BUI не использует прогресс и подтверждение прошлой локальной сессии.</summary>
     [Test]
     public async Task ReopenClearsTransientActionState()
@@ -561,9 +618,9 @@ public sealed class FishSurgeryWindowTest
     /// <summary>
     /// Exercises the actual window and UI input, including stale clicks after a state refresh.
     /// </summary>
-    [TestCase("OrganHumanHandLeft", 23, 20)]
-    [TestCase("OrganHumanHandRight", 8, 20)]
-    [TestCase("OrganHumanFootLeft", 18, 30)]
+    [TestCase("OrganHumanHandLeft", 8, 20)]
+    [TestCase("OrganHumanHandRight", 23, 20)]
+    [TestCase("OrganHumanFootLeft", 12, 30)]
     public async Task PartSelectionClearsWithSnapshot(string prototype, float x, float y)
     {
         await using var pair = await PoolManager.GetServerClient(new PoolSettings { Connected = true });

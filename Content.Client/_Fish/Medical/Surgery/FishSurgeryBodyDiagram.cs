@@ -24,18 +24,19 @@ public sealed partial class FishSurgeryBodyDiagram : Control
     [Dependency] private MarkingManager _marking = default!;
 
     // Координаты общего холста частей тела 32x32. Кисти и стопы имеют расширенные области нажатия.
+    // Стороны выбора соответствуют экрану: левые конечности выбираются слева, правые — справа.
     private static readonly Region[] Regions =
     [
         new("Head", new(10, 2, 21, 10)),
         new("Torso", new(11, 10, 20, 23)),
-        new("ArmLeft", new(20, 10, 26, 18)),
-        new("ArmRight", new(5, 10, 11, 18)),
-        new("HandLeft", new(20, 18, 26, 23)),
-        new("HandRight", new(5, 18, 11, 23)),
-        new("LegLeft", new(16, 23, 21, 29)),
-        new("LegRight", new(10, 23, 15, 29)),
-        new("FootLeft", new(16, 29, 23, 32)),
-        new("FootRight", new(8, 29, 15, 32)),
+        new("ArmRight", new(20, 10, 26, 18)),
+        new("ArmLeft", new(5, 10, 11, 18)),
+        new("HandRight", new(20, 18, 26, 23)),
+        new("HandLeft", new(5, 18, 11, 23)),
+        new("LegRight", new(16, 23, 21, 29)),
+        new("LegLeft", new(10, 23, 15, 29)),
+        new("FootRight", new(16, 29, 23, 32)),
+        new("FootLeft", new(8, 29, 15, 32)),
     ];
 
     private readonly Dictionary<string, Part> _parts = new();

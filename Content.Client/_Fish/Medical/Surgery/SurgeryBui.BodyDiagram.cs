@@ -15,6 +15,7 @@ public sealed partial class SurgeryBui
 {
     /* Выбор на схеме использует те же операции и серверные сообщения, что и исходный список. */
     private TimeSpan _fishRequestUntil;
+    private bool _fishWasBusy;
     private DoAfterId? _fishPreviousActionId;
     private TimeSpan _fishResultUntil;
     private SurgeryAction? _fishAction;
@@ -33,6 +34,7 @@ public sealed partial class SurgeryBui
     private void ResetFishSessionState()
     {
         _fishRequestUntil = TimeSpan.Zero;
+        _fishWasBusy = false;
         _fishPreviousActionId = null;
         _fishResultUntil = TimeSpan.Zero;
         _fishAction = null;
@@ -123,7 +125,8 @@ public sealed partial class SurgeryBui
             button.Button.AddStyleClass("FishSurgeryNext");
         if (status == StepStatus.Complete)
             button.Button.AddStyleClass("FishSurgeryDone");
-        button.Button.Disabled |= IsFishActionBusy();
+        _fishWasBusy = IsFishActionBusy();
+        button.Button.Disabled |= _fishWasBusy;
         button.NameLabel.Modulate = button.Button.Disabled ? FishSurgerySheetlet.Palette.TextDark : Color.White;
         if (status == StepStatus.Complete)
             button.ToolTip = _loc.GetString("fish-surgery-step-complete");
@@ -137,37 +140,34 @@ public sealed partial class SurgeryBui
         return message;
     }
 
-    private void RequestFishStep(NetEntity netPart, EntProtoId surgeryId, EntProtoId stepId)
+    private bool TryRequestFishStep(NetEntity netPart, EntProtoId surgeryId, EntProtoId stepId, bool confirmed = false)
     {
+        // После подтверждения повторно проверяем инструмент, этап и выбранную конечность.
         if (!CanRequestFishStep(netPart, surgeryId, stepId, out var step))
-            return;
+            return false;
 
-        if (_entities.HasComponent<SurgeryStepAmputationEffectComponent>(step) ||
-            _entities.HasComponent<SurgeryStepOrganExtractComponent>(step))
+        if (!confirmed && (_entities.HasComponent<SurgeryStepAmputationEffectComponent>(step) ||
+            _entities.HasComponent<SurgeryStepOrganExtractComponent>(step)))
         {
             var description = _loc.GetString("fish-surgery-danger-description",
                 ("part", GetSelectedPartName() ?? string.Empty),
                 ("step", _entities.GetComponent<MetaDataComponent>(step).EntityName));
-            _window?.RequestConfirmation(step, description, () => TrySendFishStep(netPart, surgeryId, stepId));
-            return;
+            _window?.RequestConfirmation(step, description, () => TryRequestFishStep(netPart, surgeryId, stepId, true));
+            return true;
         }
 
-        TrySendFishStep(netPart, surgeryId, stepId);
+        DoSendFishStep(netPart, surgeryId, stepId);
+        return true;
     }
 
-    private bool TrySendFishStep(NetEntity netPart, EntProtoId surgeryId, EntProtoId stepId)
+    private void DoSendFishStep(NetEntity netPart, EntProtoId surgeryId, EntProtoId stepId)
     {
-        // Подтверждение не сохраняет разрешение: инструмент, этап и конечность проверяются заново.
-        if (!CanRequestFishStep(netPart, surgeryId, stepId, out _))
-            return false;
-
         _fishPreviousActionId = FindFishAction()?.Id;
         if (_entities.TryGetEntity(netPart, out var part))
             _fishRequestedAction = new FishActionContext(part.Value, surgeryId, stepId);
         SendMessage(new SurgeryStepChosenBuiMsg { Part = netPart, Surgery = surgeryId, Step = stepId });
         _fishRequestUntil = _game.CurTime + TimeSpan.FromSeconds(2);
         RefreshUI();
-        return true;
     }
 
     private bool CanRequestFishStep(NetEntity netPart, EntProtoId surgeryId, EntProtoId stepId, out EntityUid step)
@@ -235,6 +235,14 @@ public sealed partial class SurgeryBui
     {
         if (_window == null)
             return;
+
+        // Отмена DoAfter и истечение ожидания ответа не обязаны менять состояние операции.
+        var busy = IsFishActionBusy();
+        if (busy != _fishWasBusy)
+        {
+            _fishWasBusy = busy;
+            _window.RequestRefresh();
+        }
 
         var action = FindFishAction();
         if (action != null && _game.CurTime < _fishRequestUntil && action.Id == _fishPreviousActionId)

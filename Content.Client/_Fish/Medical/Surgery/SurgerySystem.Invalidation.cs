@@ -7,7 +7,8 @@ namespace Content.Client._Starlight.Medical.Surgery;
 
 public sealed partial class SurgerySystem
 {
-    [Dependency] private IPlayerManager _fishPlayer = default!;
+    [Dependency] private IPlayerManager _player = default!;
+    [Dependency] private EntityQuery<UserInterfaceUserComponent> _uiUserQuery = default!;
 
     private void InitializeFishUiInvalidation()
     {
@@ -24,7 +25,7 @@ public sealed partial class SurgerySystem
 
     private void OnFishMoved(Entity<TransformComponent> ent, ref MoveEvent args)
     {
-        if (ent.Owner == _fishPlayer.LocalEntity)
+        if (ent.Owner == _player.LocalEntity)
         {
             RefreshOpenFishUis();
             return;
@@ -39,8 +40,10 @@ public sealed partial class SurgerySystem
 
     private void OnFishSurgeryShutdown(Entity<SurgeryComponent> ent, ref ComponentShutdown args)
     {
-        var query = EntityQueryEnumerator<SurgeryTargetComponent>();
-        while (query.MoveNext(out var patient, out _))
+        if (_player.LocalEntity is not { } user || !_uiUserQuery.TryComp(user, out var interfaces))
+            return;
+
+        foreach (var patient in interfaces.OpenInterfaces.Keys)
         {
             if (_ui.TryGetOpenUi<SurgeryBui>(patient, SurgeryUIKey.Key, out var bui))
                 bui.InvalidateFishSurgery(ent.Owner);
@@ -49,8 +52,11 @@ public sealed partial class SurgerySystem
 
     private void RefreshOpenFishUis()
     {
-        var query = EntityQueryEnumerator<SurgeryTargetComponent>();
-        while (query.MoveNext(out var patient, out _))
+        if (_player.LocalEntity is not { } user || !_uiUserQuery.TryComp(user, out var interfaces))
+            return;
+
+        // Движок уже хранит открытые BUI игрока; отдельный реестр и обход всех пациентов не нужны.
+        foreach (var patient in interfaces.OpenInterfaces.Keys)
         {
             if (_ui.TryGetOpenUi<SurgeryBui>(patient, SurgeryUIKey.Key, out var bui))
                 bui.QueueFishUiRefresh();

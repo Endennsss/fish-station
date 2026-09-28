@@ -32,7 +32,7 @@ public sealed partial class SurgeryBui
     {
         ConfigureFishChoice(button);
         _window?.RegisterStep(button);
-        button.Button.OnPressed += _ => RequestFishStep(part, surgery, step);
+        button.Button.OnPressed += _ => TryRequestFishStep(part, surgery, step);
     }
 
     private void PrepareFishStepsForOperation()
