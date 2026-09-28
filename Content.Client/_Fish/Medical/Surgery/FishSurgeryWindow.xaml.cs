@@ -55,6 +55,9 @@ public sealed partial class FishSurgeryWindow : FancyWindow
         // Подписи навигации размещены рядом с иконками вместо встроенной подписи Button.
         SurgeriesButton.Label.Visible = false;
         StepsButton.Label.Visible = false;
+        OperationArrow.ReferenceControl = SelectedPart;
+        SurgeriesArrow.ReferenceControl = SurgeriesButtonLabel;
+        StepsArrow.ReferenceControl = StepsButtonLabel;
         BodyDiagram.PartSelected += part => PartSelected?.Invoke(part);
         BodyDiagram.HoveredPartChanged += name => SetLabelText(HoverName, name ?? _loc.GetString("fish-surgery-hover-hint"));
         CancelAction.OnPressed += _ => DismissConfirmation();
@@ -159,6 +162,8 @@ public sealed partial class FishSurgeryWindow : FancyWindow
         PartsButton.Visible = !choosingPart && !showingSteps;
         SetLabelText(SurgeriesButtonLabel, _loc.GetString("fish-surgery-back-operations"));
         SetLabelText(StepsButtonLabel, _loc.GetString("fish-surgery-back-prerequisite"));
+        SurgeriesArrow.ReferenceText = SurgeriesButtonLabel.Text ?? string.Empty;
+        StepsArrow.ReferenceText = StepsButtonLabel.Text ?? string.Empty;
         SurgeriesButton.Visible = showingSteps;
         StepsButton.Visible = showingSteps && !StepsButton.Disabled;
     }
@@ -187,6 +192,7 @@ public sealed partial class FishSurgeryWindow : FancyWindow
     {
         var title = _partName ?? _loc.GetString("fish-surgery-select-part");
         SetOptionalText(SelectedPart, title);
+        OperationArrow.ReferenceText = title;
         var showOperation = _operationName != null && _showingSteps;
         OperationArrow.Visible = showOperation;
         OperationName.Visible = showOperation;

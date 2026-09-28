@@ -29,7 +29,7 @@
                             <Label Text="{Loc 'fish-surgery-selected-area'}" StyleClasses="FishSurgeryCaption" />
                             <BoxContainer Orientation="Horizontal" SeparationOverride="8">
                                 <RichTextLabel Name="SelectedPart" StyleClasses="FishSurgeryContextTitle" VerticalAlignment="Center" />
-                                <Label Name="OperationArrow" Text="→" StyleClasses="FishSurgeryArrow" Visible="False"
+                                <fish:FishSurgeryArrowLabel Name="OperationArrow" Text="→" StyleClasses="FishSurgeryArrow" Visible="False"
                                     VerticalAlignment="Center" VAlign="Center" />
                                 <RichTextLabel Name="OperationName" StyleClasses="FishSurgeryContextTitle"
                                     HorizontalExpand="True" VerticalAlignment="Center" Visible="False" />
@@ -47,14 +47,14 @@
                     <Button Name="PartsButton" Access="Public" StyleClasses="FishSurgeryButton" />
                     <Button Name="SurgeriesButton" Access="Public" StyleClasses="FishSurgeryButton">
                         <BoxContainer Orientation="Horizontal" SeparationOverride="6">
-                            <Label Text="←" StyleClasses="FishSurgeryArrow" VerticalAlignment="Center" VAlign="Center" />
-                            <Label Name="SurgeriesButtonLabel" VerticalAlignment="Center" />
+                            <fish:FishSurgeryArrowLabel Name="SurgeriesArrow" Text="←" StyleClasses="FishSurgeryArrow" VerticalAlignment="Center" />
+                            <Label Name="SurgeriesButtonLabel" StyleClasses="FishSurgeryNavigationText" VerticalAlignment="Center" />
                         </BoxContainer>
                     </Button>
                     <Button Name="StepsButton" Access="Public" StyleClasses="FishSurgeryButton">
                         <BoxContainer Orientation="Horizontal" SeparationOverride="6">
-                            <Label Text="←" StyleClasses="FishSurgeryArrow" VerticalAlignment="Center" VAlign="Center" />
-                            <Label Name="StepsButtonLabel" VerticalAlignment="Center" />
+                            <fish:FishSurgeryArrowLabel Name="StepsArrow" Text="←" StyleClasses="FishSurgeryArrow" VerticalAlignment="Center" />
+                            <Label Name="StepsButtonLabel" StyleClasses="FishSurgeryNavigationText" VerticalAlignment="Center" />
                         </BoxContainer>
                     </Button>
                 </BoxContainer>
