@@ -174,6 +174,9 @@ public abstract partial class SharedMechSystem : EntitySystem
         _actions.AddAction(pilot, ref component.MechUiActionEntity, component.MechUiAction, mech);
         _actions.AddAction(pilot, ref component.MechLightsActionEntity, component.MechLightsAction, mech);
         _actions.AddAction(pilot, ref component.MechEjectActionEntity, component.MechEjectAction, mech);
+        // FIsh added start — добавляем дополнительные действия меха из проекта Fish.
+        AddFishMechActions(pilot, mech, component);
+        // FIsh added end
     }
 
     private void RemoveUser(EntityUid mech, EntityUid pilot)

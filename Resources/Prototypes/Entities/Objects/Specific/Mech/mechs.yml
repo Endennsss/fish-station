@@ -122,6 +122,9 @@
       enum.MechEquipmentSelectUiKey.Key:
         type: MechEquipmentSelectBoundUserInterface
       # Sunrise edit end
+      # FIsh edit — интерфейс сканера массы для мехов с соответствующим действием.
+      enum.RadarConsoleUiKey.Key:
+        type: RadarConsoleBoundUserInterface
   - type: MeleeWeapon
     hidden: true
     animation: WeaponArcMechDisabled # Sunrise-Edit
@@ -409,6 +412,7 @@
     openState: clarke-open
     brokenState: clarke-broken
     mechToPilotDamageMultiplier: 0.0 # Sunrise edit
+    mechMassScannerAction: ActionMechMassScanner # FIsh edit — действие сканера массы.
     airtight: true
     pilotWhitelist:
       components:
@@ -436,6 +440,9 @@
     autoRot: true
     radius: 8
     netsync: false
+  - type: RadarConsole
+    maxRange: 256
+    followEntity: true
   - type: Tag
     tags:
     - DoorBumpOpener

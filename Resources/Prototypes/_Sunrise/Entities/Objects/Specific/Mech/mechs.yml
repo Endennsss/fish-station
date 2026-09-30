@@ -76,6 +76,9 @@
         type: MechBoundUserInterface
       enum.MechEquipmentSelectUiKey.Key:
         type: MechEquipmentSelectBoundUserInterface
+      # FIsh edit — интерфейс сканера массы для шахтёрского пода.
+      enum.RadarConsoleUiKey.Key:
+        type: RadarConsoleBoundUserInterface
   - type: Puller
     needsHands: false
   - type: InputMover
@@ -267,6 +270,7 @@
     openState: mining_pod_open
     brokenState: mining_pod_broken
     mechToPilotDamageMultiplier: 0.0
+    mechMassScannerAction: ActionMechMassScanner # FIsh edit — действие сканера массы.
     maxEquipmentAmount: 4
     airtight: true
     pilotWhitelist:
@@ -297,6 +301,9 @@
       - PowerCageMedium
   - type: AccessReader
     access: [["Mining"]]
+  - type: RadarConsole
+    maxRange: 256
+    followEntity: true
   - type: Storage
     grid:
     - 0,0,11,7
