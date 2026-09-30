@@ -708,3 +708,38 @@
   url: https://github.com/makura-games/fish-station/pull/471
   media:
   - url: https://github.com/user-attachments/assets/5779808e-b0c3-4145-9d47-02ce3e365af7
+- author: dan4ikk3
+  time: '2026-09-29T07:35:39.0000000+00:00'
+  changes:
+  - type: Add
+    message: Добавлен продвинутый голопад, работающий отдельно от обычной сети голопадов. Позвонив с него, напрямую видно и слышно всё происходящее вокруг приёмника в реальном времени.
+  id: 70
+  url: https://github.com/makura-games/fish-station/pull/469
+  media:
+  - url: https://github.com/user-attachments/assets/d725c3e1-bb75-47d4-8f0e-8a66d3226313
+- author: TiFeRi
+  time: '2026-09-29T20:21:04.0000000+00:00'
+  changes:
+  - type: Tweak
+    message: Вместимость базового батарейного магазина ИК увеличена с 12 до 18 патронов, а большого магазина с 24 до 36 патронов.
+  - type: Tweak
+    message: Уменьшен урон выстрела картриджа ИК с 20 до 13.
+  - type: Tweak
+    message: Стёкла теперь блокируют выстрелы картриджа ИК.
+  id: 71
+  url: https://github.com/makura-games/fish-station/pull/479
+- author: NekutGit
+  time: '2026-09-29T21:03:32.0000000+00:00'
+  changes:
+  - type: Add
+    message: 'Добавлены медицинские подсумки для баночек: обычный, парамеда, НаноТрейзен, бригмеда, блюспейс и Синдиката. Содержимое получает на 99% меньше урона от взрыва.'
+  - type: Add
+    message: Добавлена технология создания обычного подсумка в Т2 биохимии с уникальным рецептом.
+  - type: Add
+    message: В технологию "Блюспейс химия" добавлен рецепт создания блюспейс подсумок.
+  - type: Add
+    message: В аплинк Синдиката добавлен мед-подсумок Синдиката.
+  - type: Add
+    message: В комплект врачей ОБР добавлены мед-подсумки.
+  id: 72
+  url: https://github.com/makura-games/fish-station/pull/477
