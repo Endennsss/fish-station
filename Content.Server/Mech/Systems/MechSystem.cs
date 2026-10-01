@@ -194,14 +194,18 @@ public sealed partial class MechSystem : SharedMechSystem
         if (!args.CanAccess || !args.CanInteract || component.Broken)
             return;
 
-        if (CanInsert(uid, args.User, component))
+        var heldBrain = args.Using is { } usingEntity && CanInsert(uid, usingEntity, component)
+            ? usingEntity
+            : (EntityUid?) null;
+
+        if (CanInsert(uid, args.User, component) || heldBrain != null)
         {
             var enterVerb = new AlternativeVerb
             {
                 Text = Loc.GetString("mech-verb-enter"),
                 Act = () =>
                 {
-                    var doAfterEventArgs = new DoAfterArgs(EntityManager, args.User, component.EntryDelay, new MechEntryEvent(), uid, target: uid)
+                    var doAfterEventArgs = new DoAfterArgs(EntityManager, args.User, component.EntryDelay, new MechEntryEvent(), uid, used: heldBrain)
                     {
                         BreakOnMove = true,
                     };
@@ -249,8 +253,10 @@ public sealed partial class MechSystem : SharedMechSystem
         if (args.Cancelled || args.Handled)
             return;
 
+        var pilot = args.Args.Used ?? args.User;
+
         // FIsh edit start — разрешаем роботизированным мозгам входить в мех при включённой настройке.
-        if (_whitelistSystem.IsWhitelistFail(component.PilotWhitelist, args.User) && !CanInsertBrain(uid, args.User))
+        if (_whitelistSystem.IsWhitelistFail(component.PilotWhitelist, pilot) && !CanInsertBrain(uid, pilot))
         // FIsh edit end
         {
             _popup.PopupEntity(Loc.GetString("mech-no-enter", ("item", uid)), Identity.Entity(args.User, EntityManager));
@@ -276,7 +282,7 @@ public sealed partial class MechSystem : SharedMechSystem
         }
 
         _factionSystem.Up(args.Args.User, uid);
-        TryInsert(uid, args.Args.User, component);
+        TryInsert(uid, pilot, component);
         _actionBlocker.UpdateCanMove(uid);
 
         args.Handled = true;
