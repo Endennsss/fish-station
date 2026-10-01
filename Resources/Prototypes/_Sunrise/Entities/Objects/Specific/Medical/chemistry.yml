@@ -31,7 +31,7 @@
   - type: Solution
     id: beaker
     solution:
-      maxVol: 180
+      maxVol: 180 #Fish-edit
   - type: Destructible
     thresholds:
     - trigger:
