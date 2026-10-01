@@ -249,7 +249,9 @@ public sealed partial class MechSystem : SharedMechSystem
         if (args.Cancelled || args.Handled)
             return;
 
-        if (_whitelistSystem.IsWhitelistFail(component.PilotWhitelist, args.User))
+        // FIsh edit start — разрешаем роботизированным мозгам входить в мех при включённой настройке.
+        if (_whitelistSystem.IsWhitelistFail(component.PilotWhitelist, args.User) && !CanInsertBrain(uid, args.User))
+        // FIsh edit end
         {
             _popup.PopupEntity(Loc.GetString("mech-no-enter", ("item", uid)), Identity.Entity(args.User, EntityManager));
             return;

@@ -407,7 +407,9 @@ public abstract partial class SharedMechSystem : EntitySystem
         if (!Resolve(uid, ref component))
             return false;
 
-        return IsEmpty(component) && _actionBlocker.CanMove(toInsert);
+        // FIsh edit start — мозговые интерфейсы не имеют InputMover, но могут управлять мехом.
+        return IsEmpty(component) && (CanInsertBrain(uid, toInsert) || _actionBlocker.CanMove(toInsert));
+        // FIsh edit end
     }
 
     /// <summary>

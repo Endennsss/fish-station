@@ -29,6 +29,8 @@
     - NanoTrasen
   - type: Mech
     entryDelay: 1
+  - type: MechBrain
+    canInsertBrain: true
   - type: MechVulnerableToEMP
   - type: MechAir
   - type: GravityAffected
