@@ -85,6 +85,7 @@ public sealed partial class MechSystem : SharedMechSystem
         SubscribeLocalEvent<MechAirComponent, GetFilterAirEvent>(OnGetFilterAir);
 
         InitializeSunrise(); // Sunrise-Edit — регистрация расширений мехов
+        InitializeFish();
 
         #region Equipment UI message relays
         SubscribeLocalEvent<MechComponent, MechGrabberEjectMessage>(ReceiveEquipmentUiMesssages);
@@ -101,6 +102,9 @@ public sealed partial class MechSystem : SharedMechSystem
     private void OnInteractUsing(EntityUid uid, MechComponent component, InteractUsingEvent args)
     {
         if (TryComp<WiresPanelComponent>(uid, out var panel) && !panel.Open)
+            return;
+
+        if (HandleFishBrainInteraction(uid, component, args))
             return;
 
         if (component.BatterySlot.ContainedEntity == null && TryComp<BatteryComponent>(args.Used, out var battery) && _tag.HasTag(args.Used, PowerCageTag))
