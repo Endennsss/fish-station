@@ -217,6 +217,12 @@
   - type: Interactions
   # Sunrise-end
 
+  # Fish-start
+  - type: WingFlight
+    speedModifier: 1.1
+    autoDisableThreshold: 0.2 # 6 секунд полета до почти стамина крита
+    sustainStaminaPerSecond: 10 # по дефолту использует 20 стамину и остается 60 стамины на полет
+# Fish-end
 - type: entity
   parent: OrganBase
   id: OrganMoth

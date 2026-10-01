@@ -743,3 +743,10 @@
     message: В комплект врачей ОБР добавлены мед-подсумки.
   id: 72
   url: https://github.com/makura-games/fish-station/pull/477
+- author: deathframe
+  time: '2026-09-30T20:21:13.0000000+00:00'
+  changes:
+  - type: Tweak
+    message: У Нианов добавлена способность полета схожая с той, что у Милир.
+  id: 73
+  url: https://github.com/makura-games/fish-station/pull/481
