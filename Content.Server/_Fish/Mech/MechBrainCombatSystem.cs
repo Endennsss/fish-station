@@ -1,4 +1,6 @@
 using Content.Shared.CombatMode;
+using Content.Shared.ActionBlocker;
+using Content.Shared.Interaction.Components;
 using Content.Shared.Mech.Components;
 using Content.Shared.Silicons.Borgs.Components;
 
@@ -7,6 +9,7 @@ namespace Content.Server._Fish.Mech;
 public sealed partial class MechBrainCombatSystem : EntitySystem
 {
     [Dependency] private SharedCombatModeSystem _combatMode = default!;
+    [Dependency] private ActionBlockerSystem _actionBlocker = default!;
 
     public override void Initialize()
     {
@@ -21,6 +24,8 @@ public sealed partial class MechBrainCombatSystem : EntitySystem
             return;
 
         EnsureComp<MechBrainCombatComponent>(uid);
+        var blockMovement = EnsureComp<BlockMovementComponent>(uid);
+        blockMovement.BlockInteraction = false;
         EnsureComp<CombatModeComponent>(uid);
     }
 
@@ -36,5 +41,6 @@ public sealed partial class MechBrainCombatSystem : EntitySystem
         }
 
         RemComp<MechBrainCombatComponent>(uid);
+        _actionBlocker.UpdateCanMove(uid);
     }
 }
