@@ -85,7 +85,6 @@ public sealed partial class MechSystem : SharedMechSystem
         SubscribeLocalEvent<MechAirComponent, GetFilterAirEvent>(OnGetFilterAir);
 
         InitializeSunrise(); // Sunrise-Edit — регистрация расширений мехов
-        InitializeFish();
 
         #region Equipment UI message relays
         SubscribeLocalEvent<MechComponent, MechGrabberEjectMessage>(ReceiveEquipmentUiMesssages);
@@ -267,7 +266,7 @@ public sealed partial class MechSystem : SharedMechSystem
             return;
         }
 
-        if (_whitelistSystem.IsWhitelistPass(component.PilotBlacklist, args.User))
+        if (_whitelistSystem.IsWhitelistPass(component.PilotBlacklist, pilot))
         {
             _popup.PopupEntity(Loc.GetString("mech-no-enter", ("item", uid)), args.User);
             return;
@@ -285,7 +284,7 @@ public sealed partial class MechSystem : SharedMechSystem
             _hands.DoDrop(args.Args.User, hand);
         }
 
-        _factionSystem.Up(args.Args.User, uid);
+        _factionSystem.Up(pilot, uid);
         TryInsert(uid, pilot, component);
         _actionBlocker.UpdateCanMove(uid);
 
