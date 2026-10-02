@@ -101,10 +101,10 @@ public sealed partial class MechSystem : SharedMechSystem
 
     private void OnInteractUsing(EntityUid uid, MechComponent component, InteractUsingEvent args)
     {
-        if (TryComp<WiresPanelComponent>(uid, out var panel) && !panel.Open)
+        if (HandleFishBrainInteraction(uid, component, args))
             return;
 
-        if (HandleFishBrainInteraction(uid, component, args))
+        if (TryComp<WiresPanelComponent>(uid, out var panel) && !panel.Open)
             return;
 
         if (component.BatterySlot.ContainedEntity == null && TryComp<BatteryComponent>(args.Used, out var battery) && _tag.HasTag(args.Used, PowerCageTag))
