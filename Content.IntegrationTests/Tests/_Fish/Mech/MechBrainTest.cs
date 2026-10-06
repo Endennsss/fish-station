@@ -1,19 +1,55 @@
+using System.Linq;
 using Content.Server.Mech.Systems;
 using Content.Shared.ActionBlocker;
 using Content.Shared.CombatMode;
+using Content.Shared.Hands.Components;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Interaction;
 using Content.Shared.Interaction.Components;
 using Content.Shared.Mech.Components;
 using Content.Shared.Movement.Components;
+using Content.Shared.Verbs;
 using Content.Shared.Whitelist;
 using Robust.Shared.GameObjects;
+using Robust.Shared.Localization;
 
 namespace Content.IntegrationTests.Tests._Fish.Mech;
 
 [TestFixture, NonParallelizable]
 public sealed class MechBrainTest
 {
+    [Test]
+    public async Task BlacklistedHeldBrainStillAllowsEnteringMech()
+    {
+        await using var pair = await PoolManager.GetServerClient();
+        var server = pair.Server;
+        var entMan = server.EntMan;
+        var map = await pair.CreateTestMap();
+        EntityUid user = default;
+        EntityUid mech = default;
+        EntityUid brain = default;
+        var hasEnterVerb = false;
+
+        await server.WaitPost(() =>
+        {
+            user = entMan.SpawnEntity("MobHuman", map.GridCoords);
+            mech = entMan.SpawnEntity("MechRipleyBattery", map.GridCoords);
+            brain = entMan.SpawnEntity("PositronicBrain", map.GridCoords);
+            entMan.GetComponent<MechComponent>(mech).PilotBlacklist = new EntityWhitelist { Components = ["BorgBrain"] };
+            entMan.System<SharedHandsSystem>().TryPickupAnyHand(user, brain);
+
+            var hands = entMan.GetComponent<HandsComponent>(user);
+            var verbs = new GetVerbsEvent<AlternativeVerb>(user, mech, brain, hands, true, true, true, []);
+            entMan.EventBus.RaiseLocalEvent(mech, verbs);
+
+            var enterText = server.ResolveDependency<ILocalizationManager>().GetString("mech-verb-enter");
+            hasEnterVerb = verbs.Verbs.Any(verb => verb.Text == enterText);
+        });
+
+        await server.WaitAssertion(() => Assert.That(hasEnterVerb, Is.True));
+        await pair.CleanReturnAsync();
+    }
+
     [TestCase("PositronicBrain", false)]
     [TestCase("PositronicBrain", true)]
     [TestCase("PersonalAI", false)]
@@ -91,6 +127,7 @@ public sealed class MechBrainTest
                 Assert.That(inserted, Is.True);
                 Assert.That(entMan.GetComponent<BlockMovementComponent>(brain).BlockInteraction, Is.False);
                 Assert.That(entMan.HasComponent<CombatModeComponent>(brain), Is.True);
+                Assert.That(entMan.GetComponent<CombatModeComponent>(brain).IsInCombatMode, Is.True);
             });
 
             await server.WaitPost(() => entMan.System<SharedCombatModeSystem>().SetInCombatMode(brain, true));
@@ -103,6 +140,8 @@ public sealed class MechBrainTest
                 if (hadBlockMovement)
                     Assert.That(entMan.GetComponent<BlockMovementComponent>(brain).BlockInteraction, Is.True);
                 Assert.That(entMan.HasComponent<CombatModeComponent>(brain), Is.EqualTo(hadCombatMode));
+                if (hadCombatMode)
+                    Assert.That(entMan.GetComponent<CombatModeComponent>(brain).IsInCombatMode, Is.False);
                 Assert.That(entMan.System<ActionBlockerSystem>().CanMove(brain), Is.EqualTo(!hadBlockMovement));
                 Assert.That(entMan.HasComponent<MechPilotComponent>(brain), Is.False);
                 Assert.That(entMan.HasComponent<RelayInputMoverComponent>(brain), Is.False);

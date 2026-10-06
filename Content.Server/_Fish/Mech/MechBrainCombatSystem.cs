@@ -34,8 +34,8 @@ public sealed partial class MechBrainCombatSystem : EntitySystem
         var blockMovement = existingBlockMovement ?? EnsureComp<BlockMovementComponent>(uid);
         blockMovement.BlockInteraction = false;
 
-        if (!hadCombatMode)
-            EnsureComp<CombatModeComponent>(uid);
+        var combatMode = EnsureComp<CombatModeComponent>(uid);
+        brainCombat.InitialCombatMode = hadCombatMode && combatMode.IsInCombatMode;
     }
 
     private void OnPilotShutdown(Entity<MechPilotComponent> ent, ref ComponentShutdown args)
@@ -44,10 +44,12 @@ public sealed partial class MechBrainCombatSystem : EntitySystem
         if (!TryComp<MechBrainCombatComponent>(uid, out var brainCombat))
             return;
 
-        if (brainCombat.AddedCombatMode && TryComp<CombatModeComponent>(uid, out var combat))
+        if (TryComp<CombatModeComponent>(uid, out var combat))
         {
-            _combatMode.SetInCombatMode(uid, false, combat);
-            RemComp<CombatModeComponent>(uid);
+            _combatMode.SetInCombatMode(uid, brainCombat.InitialCombatMode, combat);
+
+            if (brainCombat.AddedCombatMode)
+                RemComp<CombatModeComponent>(uid);
         }
 
         if (brainCombat.AddedBlockMovement)
