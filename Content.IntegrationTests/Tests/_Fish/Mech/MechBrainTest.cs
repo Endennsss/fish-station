@@ -6,6 +6,7 @@ using Content.Shared.Hands.Components;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Interaction;
 using Content.Shared.Interaction.Components;
+using Content.Shared.Light.Components;
 using Content.Shared.Mech.Components;
 using Content.Shared.Movement.Components;
 using Content.Shared.Verbs;
@@ -18,6 +19,58 @@ namespace Content.IntegrationTests.Tests._Fish.Mech;
 [TestFixture, NonParallelizable]
 public sealed class MechBrainTest
 {
+    [Test]
+    public async Task MechPilotCannotInteractWithPoweredLights()
+    {
+        await using var pair = await PoolManager.GetServerClient();
+        var server = pair.Server;
+        var entMan = server.EntMan;
+        var map = await pair.CreateTestMap();
+        EntityUid mech = default;
+        EntityUid brain = default;
+        EntityUid light = default;
+
+        await server.WaitPost(() =>
+        {
+            mech = entMan.SpawnEntity("MechRipleyBattery", map.GridCoords);
+            brain = entMan.SpawnEntity("PositronicBrain", map.GridCoords);
+            light = entMan.SpawnEntity("PoweredLightPostSmall", map.GridCoords);
+        });
+
+        await pair.RunTicksSync(5);
+
+        var inserted = false;
+        EntityUid? bulb = null;
+        await server.WaitPost(() =>
+        {
+            inserted = entMan.System<MechSystem>().TryInsert(mech, brain);
+            var lightComponent = entMan.GetComponent<PoweredLightComponent>(light);
+            bulb = lightComponent.LightBulbContainer.ContainedEntity;
+        });
+
+        await server.WaitAssertion(() =>
+        {
+            Assert.That(inserted, Is.True);
+            Assert.That(bulb, Is.Not.Null);
+        });
+
+        await server.WaitPost(() =>
+            entMan.System<SharedInteractionSystem>().UserInteraction(
+                brain,
+                entMan.GetComponent<TransformComponent>(light).Coordinates,
+                light));
+
+        await pair.RunTicksSync(150);
+
+        await server.WaitAssertion(() =>
+        {
+            var lightComponent = entMan.GetComponent<PoweredLightComponent>(light);
+            Assert.That(lightComponent.LightBulbContainer.ContainedEntity, Is.EqualTo(bulb));
+        });
+
+        await pair.CleanReturnAsync();
+    }
+
     [Test]
     public async Task BlacklistedHeldBrainStillAllowsEnteringMech()
     {
@@ -127,7 +180,7 @@ public sealed class MechBrainTest
                 Assert.That(inserted, Is.True);
                 Assert.That(entMan.GetComponent<BlockMovementComponent>(brain).BlockInteraction, Is.False);
                 Assert.That(entMan.HasComponent<CombatModeComponent>(brain), Is.True);
-                Assert.That(entMan.GetComponent<CombatModeComponent>(brain).IsInCombatMode, Is.True);
+                Assert.That(entMan.GetComponent<CombatModeComponent>(brain).IsInCombatMode, Is.False);
             });
 
             await server.WaitPost(() => entMan.System<SharedCombatModeSystem>().SetInCombatMode(brain, true));

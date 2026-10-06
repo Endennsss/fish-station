@@ -64,6 +64,7 @@ public abstract partial class SharedMechSystem : EntitySystem
         SubscribeLocalEvent<MechComponent, MobStateChangedEvent>(OnMobState);
         SubscribeLocalEvent<MechComponent, EntityStorageIntoContainerAttemptEvent>(OnEntityStorageDump);
         SubscribeLocalEvent<MechComponent, GetAdditionalAccessEvent>(OnGetAdditionalAccess);
+        SubscribeLocalEvent<MechComponent, BeforeInteractHandEvent>(OnBeforeInteractHand);
         SubscribeLocalEvent<MechComponent, DragDropTargetEvent>(OnDragDrop);
         SubscribeLocalEvent<MechComponent, CanDropTargetEvent>(OnCanDragDrop);
         SubscribeLocalEvent<MechComponent, GotEmaggedEvent>(OnEmagged);
@@ -150,6 +151,11 @@ public abstract partial class SharedMechSystem : EntitySystem
             return;
 
         args.Entities.Add(pilot.Value);
+    }
+
+    private void OnBeforeInteractHand(EntityUid uid, MechComponent component, ref BeforeInteractHandEvent args)
+    {
+        args.Handled = true;
     }
 
     private void SetupUser(EntityUid mech, EntityUid pilot, MechComponent? component = null)
@@ -445,9 +451,6 @@ public abstract partial class SharedMechSystem : EntitySystem
             return false;
 
         SetupUser(uid, toInsert.Value);
-        // FIsh added start: включаем боевой режим после назначения меха пилоту.
-        EnableFishBrainCombat(toInsert.Value);
-        // FIsh added end
         var ev = new MechSayEvent(uid, component.MessageHello);
         RaiseLocalEvent(uid, ref ev, true);
         _container.Insert(toInsert.Value, component.PilotSlot);

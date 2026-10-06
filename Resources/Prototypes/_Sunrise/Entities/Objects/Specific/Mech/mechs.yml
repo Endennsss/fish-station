@@ -371,8 +371,15 @@
     sprite: Objects/Specific/Mech/ripley.rsi
     scale: 1.08, 1.08
     layers:
-    - map: [ "enum.MechVisualLayers.Base" ]
+    - map: [ "enum.MechVisualLayers.Base", "movement" ]
       state: death
+  - type: SpriteMovement
+    movementLayers:
+      movement:
+        state: death
+    noMovementLayers:
+      movement:
+        state: death
   - type: FootstepModifier
     footstepSoundCollection:
       path: /Audio/Mecha/sound_mecha_powerloader_step.ogg
