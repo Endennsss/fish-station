@@ -1,14 +1,17 @@
+using Content.Shared.Access.Components;
 using Content.Shared.Interaction;
 using Content.Shared.Mech.Components;
-using Content.Shared.Silicons.Borgs.Components;
-using Content.Shared.Access.Components;
 
+#pragma warning disable IDE0130 // Расширение системы мехов в папке Fish.
 namespace Content.Server.Mech.Systems;
 
 public sealed partial class MechSystem
 {
     private bool HandleFishBrainInteraction(EntityUid uid, MechComponent component, InteractUsingEvent args)
     {
+        if (args.Handled)
+            return false;
+
         if (component.Broken || !CanInsertBrain(uid, args.Used) || !CanInsert(uid, args.Used, component))
             return false;
 
@@ -16,6 +19,13 @@ public sealed partial class MechSystem
             !_accessReader.IsAllowed(args.User, uid, accessReader))
         {
             _popup.PopupEntity(Loc.GetString("mech-no-access", ("item", uid)), args.User);
+            args.Handled = true;
+            return true;
+        }
+
+        if (_whitelistSystem.IsWhitelistPass(component.PilotBlacklist, args.Used))
+        {
+            _popup.PopupEntity(Loc.GetString("mech-no-enter", ("item", uid)), args.User);
             args.Handled = true;
             return true;
         }

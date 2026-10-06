@@ -1,5 +1,5 @@
-using Content.Shared.CombatMode;
 using Content.Shared.ActionBlocker;
+using Content.Shared.CombatMode;
 using Content.Shared.Interaction.Components;
 using Content.Shared.Mech.Components;
 using Content.Shared.Silicons.Borgs.Components;
@@ -18,26 +18,43 @@ public sealed partial class MechBrainCombatSystem : EntitySystem
         SubscribeLocalEvent<MechPilotComponent, ComponentShutdown>(OnPilotShutdown);
     }
 
-    private void OnPilotStartup(EntityUid uid, MechPilotComponent component, ComponentStartup args)
+    private void OnPilotStartup(Entity<MechPilotComponent> ent, ref ComponentStartup args)
     {
-        if (!HasComp<BorgBrainComponent>(uid) || HasComp<CombatModeComponent>(uid))
+        var uid = ent.Owner;
+        if (!HasComp<BorgBrainComponent>(uid))
             return;
 
-        EnsureComp<MechBrainCombatComponent>(uid);
-        var blockMovement = EnsureComp<BlockMovementComponent>(uid);
+        var hadCombatMode = HasComp<CombatModeComponent>(uid);
+        var hadBlockMovement = TryComp<BlockMovementComponent>(uid, out var existingBlockMovement);
+        var brainCombat = EnsureComp<MechBrainCombatComponent>(uid);
+        brainCombat.AddedBlockMovement = !hadBlockMovement;
+        brainCombat.BlockInteraction = existingBlockMovement?.BlockInteraction ?? true;
+        brainCombat.AddedCombatMode = !hadCombatMode;
+
+        var blockMovement = existingBlockMovement ?? EnsureComp<BlockMovementComponent>(uid);
         blockMovement.BlockInteraction = false;
-        EnsureComp<CombatModeComponent>(uid);
+
+        if (!hadCombatMode)
+            EnsureComp<CombatModeComponent>(uid);
     }
 
-    private void OnPilotShutdown(EntityUid uid, MechPilotComponent component, ComponentShutdown args)
+    private void OnPilotShutdown(Entity<MechPilotComponent> ent, ref ComponentShutdown args)
     {
-        if (!HasComp<MechBrainCombatComponent>(uid))
+        var uid = ent.Owner;
+        if (!TryComp<MechBrainCombatComponent>(uid, out var brainCombat))
             return;
 
-        if (TryComp<CombatModeComponent>(uid, out var combat))
+        if (brainCombat.AddedCombatMode && TryComp<CombatModeComponent>(uid, out var combat))
         {
             _combatMode.SetInCombatMode(uid, false, combat);
             RemComp<CombatModeComponent>(uid);
+        }
+
+        if (brainCombat.AddedBlockMovement)
+            RemComp<BlockMovementComponent>(uid);
+        else if (TryComp<BlockMovementComponent>(uid, out var blockMovement))
+        {
+            blockMovement.BlockInteraction = brainCombat.BlockInteraction;
         }
 
         RemComp<MechBrainCombatComponent>(uid);

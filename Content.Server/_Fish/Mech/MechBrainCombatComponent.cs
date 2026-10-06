@@ -1,7 +1,23 @@
 namespace Content.Server._Fish.Mech;
 
 /// <summary>
-/// Отмечает боевой режим, выданный мозгу на время пилотирования меха.
+/// Хранит исходные ограничения мозга и компоненты, выданные на время пилотирования меха.
 /// </summary>
 [RegisterComponent]
-public sealed partial class MechBrainCombatComponent : Component;
+public sealed partial class MechBrainCombatComponent : Component
+{
+    /// <summary>
+    /// Исходное состояние запрета взаимодействий мозга.
+    /// </summary>
+    public bool BlockInteraction;
+
+    /// <summary>
+    /// Был ли BlockMovementComponent добавлен этой системой.
+    /// </summary>
+    public bool AddedBlockMovement;
+
+    /// <summary>
+    /// Был ли CombatModeComponent добавлен этой системой.
+    /// </summary>
+    public bool AddedCombatMode;
+}
