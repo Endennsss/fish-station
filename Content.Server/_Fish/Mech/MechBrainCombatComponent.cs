@@ -20,4 +20,9 @@ public sealed partial class MechBrainCombatComponent : Component
     /// Был ли CombatModeComponent добавлен этой системой.
     /// </summary>
     public bool AddedCombatMode;
+
+    /// <summary>
+    /// Исходное состояние боевого режима мозга.
+    /// </summary>
+    public bool InitialCombatMode;
 }

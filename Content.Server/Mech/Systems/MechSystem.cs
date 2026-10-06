@@ -197,9 +197,16 @@ public sealed partial class MechSystem : SharedMechSystem
         if (!args.CanAccess || !args.CanInteract || component.Broken)
             return;
 
-        var heldBrain = args.Using is { } usingEntity && CanInsertBrain(uid, usingEntity) && CanInsert(uid, usingEntity, component)
+        // FIsh edit start — скрываем вход только если мозг действительно можно установить.
+        var heldBrain = args.Using is { } usingEntity &&
+                        CanInsertBrain(uid, usingEntity) &&
+                        CanInsert(uid, usingEntity, component) &&
+                        !_whitelistSystem.IsWhitelistPass(component.PilotBlacklist, usingEntity) &&
+                        (!TryComp<AccessReaderComponent>(uid, out var accessReader) ||
+                         _accessReader.IsAllowed(args.User, uid, accessReader))
             ? usingEntity
             : (EntityUid?) null;
+        // FIsh edit end
 
         if (CanInsert(uid, args.User, component))
         {

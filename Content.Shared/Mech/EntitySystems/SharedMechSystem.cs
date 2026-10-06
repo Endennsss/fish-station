@@ -445,6 +445,9 @@ public abstract partial class SharedMechSystem : EntitySystem
             return false;
 
         SetupUser(uid, toInsert.Value);
+        // FIsh added start — включаем боевой режим после назначения меха пилоту.
+        EnableFishBrainCombat(toInsert.Value);
+        // FIsh added end
         var ev = new MechSayEvent(uid, component.MessageHello);
         RaiseLocalEvent(uid, ref ev, true);
         _container.Insert(toInsert.Value, component.PilotSlot);
