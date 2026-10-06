@@ -408,7 +408,8 @@ public abstract partial class SharedMechSystem : EntitySystem
             return false;
 
         // FIsh edit start — мозговые интерфейсы не имеют InputMover, но могут управлять мехом.
-        return IsEmpty(component) && (CanInsertBrain(uid, toInsert) || _actionBlocker.CanMove(toInsert));
+        return !component.Broken && IsEmpty(component) &&
+            (CanInsertBrain(uid, toInsert) || _actionBlocker.CanMove(toInsert));
         // FIsh edit end
     }
 
@@ -516,6 +517,9 @@ public abstract partial class SharedMechSystem : EntitySystem
         if (args.Handled)
             return;
 
+        if (CanInsertBrain(uid, args.Dragged))
+            return;
+
         args.Handled = true;
 
         var doAfterEventArgs = new DoAfterArgs(EntityManager, args.Dragged, component.EntryDelay, new MechEntryEvent(), uid, target: uid)
@@ -530,7 +534,7 @@ public abstract partial class SharedMechSystem : EntitySystem
     {
         args.Handled = true;
 
-        args.CanDrop |= !component.Broken && CanInsert(uid, args.Dragged, component);
+        args.CanDrop |= !component.Broken && !CanInsertBrain(uid, args.Dragged) && CanInsert(uid, args.Dragged, component);
     }
 
     private void OnEmagged(EntityUid uid, MechComponent component, ref GotEmaggedEvent args)
