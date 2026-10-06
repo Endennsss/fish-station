@@ -197,34 +197,38 @@ public sealed partial class MechSystem : SharedMechSystem
         if (!args.CanAccess || !args.CanInteract || component.Broken)
             return;
 
-        var heldBrain = args.Using is { } usingEntity && CanInsert(uid, usingEntity, component)
+        var heldBrain = args.Using is { } usingEntity && CanInsertBrain(uid, usingEntity) && CanInsert(uid, usingEntity, component)
             ? usingEntity
             : (EntityUid?) null;
 
-        if (CanInsert(uid, args.User, component) || heldBrain != null)
+        if (CanInsert(uid, args.User, component))
         {
-            var enterVerb = new AlternativeVerb
+            if (heldBrain == null)
             {
-                Text = Loc.GetString("mech-verb-enter"),
-                Act = () =>
+                var enterVerb = new AlternativeVerb
                 {
-                    var doAfterEventArgs = new DoAfterArgs(EntityManager, args.User, component.EntryDelay, new MechEntryEvent(), uid, used: heldBrain)
+                    Text = Loc.GetString("mech-verb-enter"),
+                    Act = () =>
                     {
-                        BreakOnMove = true,
-                    };
+                        var doAfterEventArgs = new DoAfterArgs(EntityManager, args.User, component.EntryDelay, new MechEntryEvent(), uid)
+                        {
+                            BreakOnMove = true,
+                        };
 
-                    _doAfter.TryStartDoAfter(doAfterEventArgs);
-                }
-            };
+                        _doAfter.TryStartDoAfter(doAfterEventArgs);
+                    }
+                };
+                args.Verbs.Add(enterVerb);
+            }
+
             var openUiVerb = new AlternativeVerb //can't hijack someone else's mech
             {
                 Act = () => ToggleMechUi(uid, component, args.User),
                 Text = Loc.GetString("mech-ui-open-verb")
             };
-            args.Verbs.Add(enterVerb);
             args.Verbs.Add(openUiVerb);
         }
-        else if (!IsEmpty(component))
+        else if (heldBrain == null && !IsEmpty(component))
         {
             var ejectVerb = new AlternativeVerb
             {
@@ -279,13 +283,18 @@ public sealed partial class MechSystem : SharedMechSystem
                 return;
             }
 
-        foreach (var hand in _hands.EnumerateHands(args.Args.User))
+        if (pilot == args.User)
         {
-            _hands.DoDrop(args.Args.User, hand);
+            foreach (var hand in _hands.EnumerateHands(args.Args.User))
+            {
+                _hands.DoDrop(args.Args.User, hand);
+            }
         }
 
+        if (!TryInsert(uid, pilot, component))
+            return;
+
         _factionSystem.Up(pilot, uid);
-        TryInsert(uid, pilot, component);
         _actionBlocker.UpdateCanMove(uid);
 
         args.Handled = true;
