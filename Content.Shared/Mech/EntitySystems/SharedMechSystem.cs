@@ -187,6 +187,9 @@ public abstract partial class SharedMechSystem : EntitySystem
         RemComp<InteractionRelayComponent>(pilot);
 
         _actions.RemoveProvidedActions(pilot, mech);
+        // FIsh added start — пересчитываем ограничения мозга после удаления relay-компонента.
+        UpdateFishBrainMovement(pilot);
+        // FIsh added end
     }
 
     public void ToggleLights(EntityUid uid, MechComponent component)

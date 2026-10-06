@@ -6,6 +6,12 @@ namespace Content.Shared.Mech.EntitySystems;
 
 public abstract partial class SharedMechSystem
 {
+    private void UpdateFishBrainMovement(EntityUid pilot)
+    {
+        if (HasComp<BorgBrainComponent>(pilot))
+            _actionBlocker.UpdateCanMove(pilot);
+    }
+
     private void AddFishMechActions(EntityUid pilot, EntityUid mech, MechComponent component)
     {
         if (component.MechMassScannerAction is not { } action)
