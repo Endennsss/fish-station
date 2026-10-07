@@ -64,7 +64,9 @@ public abstract partial class SharedMechSystem : EntitySystem
         SubscribeLocalEvent<MechComponent, MobStateChangedEvent>(OnMobState);
         SubscribeLocalEvent<MechComponent, EntityStorageIntoContainerAttemptEvent>(OnEntityStorageDump);
         SubscribeLocalEvent<MechComponent, GetAdditionalAccessEvent>(OnGetAdditionalAccess);
+        // FIsh added start - запрещаем пилоту меха обычные ручные взаимодействия.
         SubscribeLocalEvent<MechComponent, BeforeInteractHandEvent>(OnBeforeInteractHand);
+        // FIsh added end
         SubscribeLocalEvent<MechComponent, DragDropTargetEvent>(OnDragDrop);
         SubscribeLocalEvent<MechComponent, CanDropTargetEvent>(OnCanDragDrop);
         SubscribeLocalEvent<MechComponent, GotEmaggedEvent>(OnEmagged);
@@ -153,10 +155,12 @@ public abstract partial class SharedMechSystem : EntitySystem
         args.Entities.Add(pilot.Value);
     }
 
-    private void OnBeforeInteractHand(EntityUid uid, MechComponent component, ref BeforeInteractHandEvent args)
+    // FIsh added start - блокируем взаимодействия, которые relay передал меху.
+    private void OnBeforeInteractHand(Entity<MechComponent> ent, ref BeforeInteractHandEvent args)
     {
         args.Handled = true;
     }
+    // FIsh added end
 
     private void SetupUser(EntityUid mech, EntityUid pilot, MechComponent? component = null)
     {

@@ -1,7 +1,7 @@
 - type: entity
   parent: BaseMechAction
-  id: ActionMechMassScanner
-  name: Mass Scanner
+  id: FishActionMechMassScanner
+  name: mass scanner
   description: Opens the mass scanner centered on the mech.
   components:
   - type: Action

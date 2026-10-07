@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Content.Server.Mech.Systems;
 using Content.Shared.ActionBlocker;
@@ -13,6 +14,7 @@ using Content.Shared.Verbs;
 using Content.Shared.Whitelist;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Localization;
+using Robust.Shared.Timing;
 
 namespace Content.IntegrationTests.Tests._Fish.Mech;
 
@@ -29,6 +31,8 @@ public sealed class MechBrainTest
         EntityUid mech = default;
         EntityUid brain = default;
         EntityUid light = default;
+        var ticksToWait = 0;
+        var gameTiming = server.ResolveDependency<IGameTiming>();
 
         await server.WaitPost(() =>
         {
@@ -46,6 +50,7 @@ public sealed class MechBrainTest
             inserted = entMan.System<MechSystem>().TryInsert(mech, brain);
             var lightComponent = entMan.GetComponent<PoweredLightComponent>(light);
             bulb = lightComponent.LightBulbContainer.ContainedEntity;
+            ticksToWait = (int) Math.Ceiling(lightComponent.EjectBulbDelay * gameTiming.TickRate) + 1;
         });
 
         await server.WaitAssertion(() =>
@@ -60,7 +65,8 @@ public sealed class MechBrainTest
                 entMan.GetComponent<TransformComponent>(light).Coordinates,
                 light));
 
-        await pair.RunTicksSync(150);
+        // Ждём полный DoAfter извлечения лампы и один тик обработки события.
+        await pair.RunTicksSync(ticksToWait);
 
         await server.WaitAssertion(() =>
         {
@@ -82,6 +88,7 @@ public sealed class MechBrainTest
         EntityUid mech = default;
         EntityUid brain = default;
         var hasEnterVerb = false;
+        var pickedUp = false;
 
         await server.WaitPost(() =>
         {
@@ -89,17 +96,24 @@ public sealed class MechBrainTest
             mech = entMan.SpawnEntity("MechRipleyBattery", map.GridCoords);
             brain = entMan.SpawnEntity("PositronicBrain", map.GridCoords);
             entMan.GetComponent<MechComponent>(mech).PilotBlacklist = new EntityWhitelist { Components = ["BorgBrain"] };
-            entMan.System<SharedHandsSystem>().TryPickupAnyHand(user, brain);
+            pickedUp = entMan.System<SharedHandsSystem>().TryPickupAnyHand(user, brain);
 
-            var hands = entMan.GetComponent<HandsComponent>(user);
-            var verbs = new GetVerbsEvent<AlternativeVerb>(user, mech, brain, hands, true, true, true, []);
-            entMan.EventBus.RaiseLocalEvent(mech, verbs);
+            if (pickedUp)
+            {
+                var hands = entMan.GetComponent<HandsComponent>(user);
+                var verbs = new GetVerbsEvent<AlternativeVerb>(user, mech, brain, hands, true, true, true, []);
+                entMan.EventBus.RaiseLocalEvent(mech, verbs);
 
-            var enterText = server.ResolveDependency<ILocalizationManager>().GetString("mech-verb-enter");
-            hasEnterVerb = verbs.Verbs.Any(verb => verb.Text == enterText);
+                var enterText = server.ResolveDependency<ILocalizationManager>().GetString("mech-verb-enter");
+                hasEnterVerb = verbs.Verbs.Any(verb => verb.Text == enterText);
+            }
         });
 
-        await server.WaitAssertion(() => Assert.That(hasEnterVerb, Is.True));
+        await server.WaitAssertion(() =>
+        {
+            Assert.That(pickedUp, Is.True);
+            Assert.That(hasEnterVerb, Is.True);
+        });
         await pair.CleanReturnAsync();
     }
 

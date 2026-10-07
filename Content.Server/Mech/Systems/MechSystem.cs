@@ -100,8 +100,10 @@ public sealed partial class MechSystem : SharedMechSystem
 
     private void OnInteractUsing(EntityUid uid, MechComponent component, InteractUsingEvent args)
     {
+        // FIsh added start - вставляем роботизированный мозг через обычное использование.
         if (HandleFishBrainInteraction(uid, component, args))
             return;
+        // FIsh added end
 
         if (TryComp<WiresPanelComponent>(uid, out var panel) && !panel.Open)
             return;
@@ -217,7 +219,9 @@ public sealed partial class MechSystem : SharedMechSystem
                     Text = Loc.GetString("mech-verb-enter"),
                     Act = () =>
                     {
-                        var doAfterEventArgs = new DoAfterArgs(EntityManager, args.User, component.EntryDelay, new MechEntryEvent(), uid)
+                        // FIsh edit start - сохраняем мех как цель для проверки дистанции.
+                        var doAfterEventArgs = new DoAfterArgs(EntityManager, args.User, component.EntryDelay, new MechEntryEvent(), uid, target: uid)
+                        // FIsh edit end
                         {
                             BreakOnMove = true,
                         };
@@ -267,7 +271,9 @@ public sealed partial class MechSystem : SharedMechSystem
         if (args.Cancelled || args.Handled)
             return;
 
+        // FIsh edit start - учитываем мозг или интерфейс, используемый для входа.
         var pilot = args.Args.Used ?? args.User;
+        // FIsh edit end
 
         // FIsh edit start: разрешаем роботизированным мозгам входить в мех при включённой настройке.
         if (_whitelistSystem.IsWhitelistFail(component.PilotWhitelist, pilot) && !CanInsertBrain(uid, pilot))
@@ -277,7 +283,9 @@ public sealed partial class MechSystem : SharedMechSystem
             return;
         }
 
+        // FIsh edit start - проверяем чёрный список для фактического пилота.
         if (_whitelistSystem.IsWhitelistPass(component.PilotBlacklist, pilot))
+        // FIsh edit end
         {
             _popup.PopupEntity(Loc.GetString("mech-no-enter", ("item", uid)), args.User);
             return;
@@ -290,6 +298,7 @@ public sealed partial class MechSystem : SharedMechSystem
                 return;
             }
 
+        // FIsh edit start - не сбрасываем руки владельца мозга при входе вставкой.
         if (pilot == args.User)
         {
             foreach (var hand in _hands.EnumerateHands(args.Args.User))
@@ -297,11 +306,14 @@ public sealed partial class MechSystem : SharedMechSystem
                 _hands.DoDrop(args.Args.User, hand);
             }
         }
+        // FIsh edit end
 
+        // FIsh edit start - вставляем фактического пилота и обновляем его фракцию.
         if (!TryInsert(uid, pilot, component))
             return;
 
         _factionSystem.Up(pilot, uid);
+        // FIsh edit end
         _actionBlocker.UpdateCanMove(uid);
 
         args.Handled = true;

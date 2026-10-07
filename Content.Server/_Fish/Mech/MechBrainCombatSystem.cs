@@ -33,6 +33,7 @@ public sealed partial class MechBrainCombatSystem : EntitySystem
 
         var blockMovement = existingBlockMovement ?? EnsureComp<BlockMovementComponent>(uid);
         blockMovement.BlockInteraction = false;
+        Dirty(uid, blockMovement);
 
         var combatMode = EnsureComp<CombatModeComponent>(uid);
         brainCombat.InitialCombatMode = hadCombatMode && combatMode.IsInCombatMode;
@@ -57,6 +58,7 @@ public sealed partial class MechBrainCombatSystem : EntitySystem
         else if (TryComp<BlockMovementComponent>(uid, out var blockMovement))
         {
             blockMovement.BlockInteraction = brainCombat.BlockInteraction;
+            Dirty(uid, blockMovement);
         }
 
         RemComp<MechBrainCombatComponent>(uid);
