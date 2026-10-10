@@ -1,6 +1,8 @@
 using Robust.Shared.Prototypes;
 
+#pragma warning disable IDE0130 // Partial-класс расширяет ванильный MechComponent из папки Fish.
 namespace Content.Shared.Mech.Components;
+#pragma warning restore IDE0130
 
 public sealed partial class MechComponent
 {

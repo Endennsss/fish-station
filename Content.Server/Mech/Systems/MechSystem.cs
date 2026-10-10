@@ -212,6 +212,7 @@ public sealed partial class MechSystem : SharedMechSystem
 
         if (CanInsert(uid, args.User, component))
         {
+            // FIsh edit start - мозг должен вставляться ЛКМ, без дополнительного verb входа.
             if (heldBrain == null)
             {
                 var enterVerb = new AlternativeVerb
@@ -231,6 +232,7 @@ public sealed partial class MechSystem : SharedMechSystem
                 };
                 args.Verbs.Add(enterVerb);
             }
+            // FIsh edit end
 
             var openUiVerb = new AlternativeVerb //can't hijack someone else's mech
             {
@@ -239,7 +241,7 @@ public sealed partial class MechSystem : SharedMechSystem
             };
             args.Verbs.Add(openUiVerb);
         }
-        else if (heldBrain == null && !IsEmpty(component))
+        else if (!IsEmpty(component))
         {
             var ejectVerb = new AlternativeVerb
             {

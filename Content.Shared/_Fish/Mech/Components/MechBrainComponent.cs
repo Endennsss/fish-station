@@ -1,7 +1,7 @@
 using Robust.Shared.GameObjects;
 using Robust.Shared.GameStates;
 
-namespace Content.Shared.Mech.Components;
+namespace Content.Shared._Fish.Mech.Components;
 
 /// <summary>
 /// Настройки меха для установки роботизированного мозга, pAI или MMI.

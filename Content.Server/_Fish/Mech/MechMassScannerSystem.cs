@@ -1,6 +1,6 @@
-using Content.Shared.Mech;
 using Content.Shared.Mech.Components;
 using Content.Shared.Shuttles.BUIStates;
+using Content.Shared._Fish.Mech;
 using Robust.Server.GameObjects;
 using Robust.Shared.Player;
 
@@ -12,6 +12,7 @@ public sealed partial class MechMassScannerSystem : EntitySystem
 
     public override void Initialize()
     {
+        base.Initialize();
         SubscribeLocalEvent<MechComponent, MechOpenMassScannerEvent>(OnOpenMassScanner);
     }
 
@@ -20,33 +21,32 @@ public sealed partial class MechMassScannerSystem : EntitySystem
         if (args.Handled)
             return;
 
-        args.Handled = TryOpenMassScanner(uid, component, args.Performer);
+        args.Handled = TryOpenMassScanner((uid, component), args.Performer);
     }
 
-    private bool TryOpenMassScanner(EntityUid uid, MechComponent component, EntityUid performer)
+    private bool TryOpenMassScanner(Entity<MechComponent> ent, EntityUid performer)
     {
-        if (!CanOpenMassScanner(uid, component, performer))
+        if (!CanOpenMassScanner(ent, performer))
             return false;
 
-        var pilot = component.PilotSlot.ContainedEntity!.Value;
+        var pilot = ent.Comp.PilotSlot.ContainedEntity!.Value;
         var actor = Comp<ActorComponent>(pilot);
-        DoOpenMassScanner(uid, actor);
-        return true;
+        return DoOpenMassScanner(ent.Owner, actor);
     }
 
-    private bool CanOpenMassScanner(EntityUid uid, MechComponent component, EntityUid performer)
+    private bool CanOpenMassScanner(Entity<MechComponent> ent, EntityUid performer)
     {
-        if (component.PilotSlot.ContainedEntity != performer)
+        if (ent.Comp.PilotSlot.ContainedEntity != performer)
             return false;
 
         if (!TryComp<ActorComponent>(performer, out _))
             return false;
 
-        return _ui.HasUi(uid, RadarConsoleUiKey.Key);
+        return _ui.HasUi(ent.Owner, RadarConsoleUiKey.Key);
     }
 
-    private void DoOpenMassScanner(EntityUid uid, ActorComponent actor)
+    private bool DoOpenMassScanner(EntityUid uid, ActorComponent actor)
     {
-        _ui.TryToggleUi(uid, RadarConsoleUiKey.Key, actor.PlayerSession);
+        return _ui.TryToggleUi(uid, RadarConsoleUiKey.Key, actor.PlayerSession);
     }
 }

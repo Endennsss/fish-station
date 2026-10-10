@@ -374,10 +374,12 @@
     noRot: true
     sprite: Objects/Specific/Mech/ripley.rsi
     scale: 1.08, 1.08
-    # FIsh added start - добавляем слой движения, чтобы SpriteMovement не обращался к отсутствующему слою.
+    # FIsh edit start - добавляем слой движения, чтобы SpriteMovement не обращался к отсутствующему слою.
     layers:
     - map: [ "enum.MechVisualLayers.Base", "movement" ]
       state: death
+    # FIsh edit end
+  # FIsh added start - добавляем SpriteMovement для Death Ripley.
   - type: SpriteMovement
     movementLayers:
       movement:
@@ -385,7 +387,7 @@
     noMovementLayers:
       movement:
         state: death
-    # FIsh added end
+  # FIsh added end
   - type: FootstepModifier
     footstepSoundCollection:
       path: /Audio/Mecha/sound_mecha_powerloader_step.ogg

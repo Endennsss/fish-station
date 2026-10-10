@@ -421,8 +421,11 @@ public abstract partial class SharedMechSystem : EntitySystem
             return false;
 
         // FIsh edit start - мозговые интерфейсы не имеют InputMover, но могут управлять мехом.
-        return !component.Broken && IsEmpty(component) &&
-            (CanInsertBrain(uid, toInsert) || _actionBlocker.CanMove(toInsert));
+        if (component.Broken || !IsEmpty(component) ||
+            (!CanInsertBrain(uid, toInsert) && !_actionBlocker.CanMove(toInsert)))
+            return false;
+
+        return _container.CanInsert(toInsert, component.PilotSlot);
         // FIsh edit end
     }
 
@@ -457,7 +460,15 @@ public abstract partial class SharedMechSystem : EntitySystem
         SetupUser(uid, toInsert.Value);
         var ev = new MechSayEvent(uid, component.MessageHello);
         RaiseLocalEvent(uid, ref ev, true);
-        _container.Insert(toInsert.Value, component.PilotSlot);
+
+        // FIsh edit start - не оставляем relay-компоненты, если контейнер отклонил вставку.
+        if (!_container.Insert(toInsert.Value, component.PilotSlot))
+        {
+            RemoveUser(uid, toInsert.Value);
+            return false;
+        }
+        // FIsh edit end
+
         UpdateAppearance(uid, component);
         return true;
     }
