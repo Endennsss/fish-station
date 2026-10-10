@@ -184,7 +184,7 @@ public abstract partial class SharedMechSystem : EntitySystem
         _actions.AddAction(pilot, ref component.MechUiActionEntity, component.MechUiAction, mech);
         _actions.AddAction(pilot, ref component.MechLightsActionEntity, component.MechLightsAction, mech);
         _actions.AddAction(pilot, ref component.MechEjectActionEntity, component.MechEjectAction, mech);
-        // FIsh added start: добавляем дополнительные действия меха из проекта Fish.
+        // FIsh added start - добавляем дополнительные действия меха из проекта Fish.
         AddFishMechActions(pilot, mech, component);
         // FIsh added end
     }
@@ -197,7 +197,7 @@ public abstract partial class SharedMechSystem : EntitySystem
         RemComp<InteractionRelayComponent>(pilot);
 
         _actions.RemoveProvidedActions(pilot, mech);
-        // FIsh added start: пересчитываем ограничения мозга после удаления relay-компонента.
+        // FIsh added start - пересчитываем ограничения мозга после удаления relay-компонента.
         UpdateFishBrainMovement(pilot);
         // FIsh added end
     }
@@ -420,7 +420,7 @@ public abstract partial class SharedMechSystem : EntitySystem
         if (!Resolve(uid, ref component))
             return false;
 
-        // FIsh edit start: мозговые интерфейсы не имеют InputMover, но могут управлять мехом.
+        // FIsh edit start - мозговые интерфейсы не имеют InputMover, но могут управлять мехом.
         return !component.Broken && IsEmpty(component) &&
             (CanInsertBrain(uid, toInsert) || _actionBlocker.CanMove(toInsert));
         // FIsh edit end
@@ -530,8 +530,10 @@ public abstract partial class SharedMechSystem : EntitySystem
         if (args.Handled)
             return;
 
+        // FIsh edit start - не даём обработать мозг как обычный drag and drop.
         if (CanInsertBrain(uid, args.Dragged))
             return;
+        // FIsh edit end
 
         args.Handled = true;
 
@@ -547,7 +549,9 @@ public abstract partial class SharedMechSystem : EntitySystem
     {
         args.Handled = true;
 
+        // FIsh edit start - мозг вставляется через обычное использование меха.
         args.CanDrop |= !component.Broken && !CanInsertBrain(uid, args.Dragged) && CanInsert(uid, args.Dragged, component);
+        // FIsh edit end
     }
 
     private void OnEmagged(EntityUid uid, MechComponent component, ref GotEmaggedEvent args)

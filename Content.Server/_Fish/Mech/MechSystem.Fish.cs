@@ -2,7 +2,7 @@ using Content.Shared.Access.Components;
 using Content.Shared.Interaction;
 using Content.Shared.Mech.Components;
 
-#pragma warning disable IDE0130 // Расширение системы мехов в папке Fish.
+#pragma warning disable IDE0130 // Частичный класс расширяет ванильную систему в папке Fish.
 namespace Content.Server.Mech.Systems;
 
 public sealed partial class MechSystem

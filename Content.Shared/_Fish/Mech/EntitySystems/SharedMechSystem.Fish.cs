@@ -1,7 +1,7 @@
 using Content.Shared.Mech.Components;
 using Content.Shared.Silicons.Borgs.Components;
 
-#pragma warning disable IDE0130
+#pragma warning disable IDE0130 // Частичный класс расширяет ванильную систему в папке Fish.
 namespace Content.Shared.Mech.EntitySystems;
 
 public abstract partial class SharedMechSystem

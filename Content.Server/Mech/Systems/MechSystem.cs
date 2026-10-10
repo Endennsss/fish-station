@@ -199,7 +199,7 @@ public sealed partial class MechSystem : SharedMechSystem
         if (!args.CanAccess || !args.CanInteract || component.Broken)
             return;
 
-        // FIsh edit start: скрываем вход только если мозг действительно можно установить.
+        // FIsh edit start - скрываем вход только если мозг действительно можно установить.
         var heldBrain = args.Using is { } usingEntity &&
                         CanInsertBrain(uid, usingEntity) &&
                         CanInsert(uid, usingEntity, component) &&
@@ -275,7 +275,7 @@ public sealed partial class MechSystem : SharedMechSystem
         var pilot = args.Args.Used ?? args.User;
         // FIsh edit end
 
-        // FIsh edit start: разрешаем роботизированным мозгам входить в мех при включённой настройке.
+        // FIsh edit start - разрешаем роботизированным мозгам входить в мех при включённой настройке.
         if (_whitelistSystem.IsWhitelistFail(component.PilotWhitelist, pilot) && !CanInsertBrain(uid, pilot))
         // FIsh edit end
         {

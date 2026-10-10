@@ -126,7 +126,7 @@
       enum.MechEquipmentSelectUiKey.Key:
         type: MechEquipmentSelectBoundUserInterface
       # Sunrise edit end
-      # FIsh edit: интерфейс сканера массы для мехов с соответствующим действием.
+      # FIsh edit - интерфейс сканера массы для мехов с соответствующим действием.
       enum.RadarConsoleUiKey.Key:
         type: RadarConsoleBoundUserInterface
   - type: MeleeWeapon
@@ -416,7 +416,7 @@
     openState: clarke-open
     brokenState: clarke-broken
     mechToPilotDamageMultiplier: 0.0 # Sunrise edit
-    mechMassScannerAction: FishActionMechMassScanner # FIsh edit: действие сканера массы.
+    mechMassScannerAction: FishActionMechMassScanner # FIsh edit - действие сканера массы.
     airtight: true
     pilotWhitelist:
       components:

@@ -35,6 +35,7 @@ public sealed partial class MechBrainCombatSystem : EntitySystem
         blockMovement.BlockInteraction = false;
         Dirty(uid, blockMovement);
 
+        // Компонент нужен для атак из меха, но установка мозга не включает боевой режим сама.
         var combatMode = EnsureComp<CombatModeComponent>(uid);
         brainCombat.InitialCombatMode = hadCombatMode && combatMode.IsInCombatMode;
     }
