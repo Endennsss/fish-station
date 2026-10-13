@@ -4,14 +4,15 @@ using Robust.Shared.GameStates;
 namespace Content.Shared._Fish.Mech.Components;
 
 /// <summary>
-/// Настройки меха для установки роботизированного мозга, pAI или MMI.
+/// Controls whether BorgBrain entities can pilot this mech.
 /// </summary>
-[RegisterComponent, NetworkedComponent]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class MechBrainComponent : Component
 {
     /// <summary>
-    /// Разрешена ли установка сущностей с BorgBrainComponent в кабину меха.
+    /// Allows brain installation, bypassing the normal movement and pilot whitelist requirements.
+    /// Pilot blacklists and the installer's access requirements still apply.
     /// </summary>
-    [DataField]
+    [DataField, AutoNetworkedField]
     public bool CanInsertBrain;
 }

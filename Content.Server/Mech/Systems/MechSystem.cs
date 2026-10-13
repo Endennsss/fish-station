@@ -49,7 +49,9 @@ public sealed partial class MechSystem : SharedMechSystem
     [Dependency] private SharedDoAfterSystem _doAfter = default!;
     [Dependency] private SharedPopupSystem _popup = default!;
     [Dependency] private UserInterfaceSystem _ui = default!;
-    [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
+    // FIsh edit start - проверки пилота используют whitelist-систему из SharedMechSystem.
+    // [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
+    // FIsh edit end
     [Dependency] private SharedToolSystem _toolSystem = default!;
     [Dependency] private SharedHandsSystem _hands = default!;
     [Dependency] private TagSystem _tag = default!;
@@ -101,7 +103,7 @@ public sealed partial class MechSystem : SharedMechSystem
     private void OnInteractUsing(EntityUid uid, MechComponent component, InteractUsingEvent args)
     {
         // FIsh added start - вставляем роботизированный мозг через обычное использование.
-        if (HandleFishBrainInteraction(uid, component, args))
+        if (HandleFishBrainInteraction((uid, component), args))
             return;
         // FIsh added end
 
@@ -199,46 +201,30 @@ public sealed partial class MechSystem : SharedMechSystem
         if (!args.CanAccess || !args.CanInteract || component.Broken)
             return;
 
-        // FIsh edit start - скрываем вход только если мозг действительно можно установить.
-        var heldBrain = args.Using is { } usingEntity &&
-                        CanInsertBrain(uid, usingEntity) &&
-                        CanInsert(uid, usingEntity, component) &&
-                        !_whitelistSystem.IsWhitelistPass(component.PilotBlacklist, usingEntity) &&
-                        (!TryComp<AccessReaderComponent>(uid, out var accessReader) ||
-                         _accessReader.IsAllowed(args.User, uid, accessReader))
-            ? usingEntity
-            : (EntityUid?) null;
-        // FIsh edit end
-
         if (CanInsert(uid, args.User, component))
         {
-            // FIsh edit start - мозг должен вставляться ЛКМ, без дополнительного verb входа.
-            if (heldBrain == null)
+            var enterVerb = new AlternativeVerb
             {
-                var enterVerb = new AlternativeVerb
+                Text = Loc.GetString("mech-verb-enter"),
+                Act = () =>
                 {
-                    Text = Loc.GetString("mech-verb-enter"),
-                    Act = () =>
+                    var doAfterEventArgs = new DoAfterArgs(EntityManager, args.User, component.EntryDelay, new MechEntryEvent(), uid, target: uid)
                     {
-                        // FIsh edit start - сохраняем мех как цель для проверки дистанции.
-                        var doAfterEventArgs = new DoAfterArgs(EntityManager, args.User, component.EntryDelay, new MechEntryEvent(), uid, target: uid)
-                        // FIsh edit end
-                        {
-                            BreakOnMove = true,
-                        };
+                        BreakOnMove = true,
+                    };
 
-                        _doAfter.TryStartDoAfter(doAfterEventArgs);
-                    }
-                };
-                args.Verbs.Add(enterVerb);
-            }
-            // FIsh edit end
-
+                    _doAfter.TryStartDoAfter(doAfterEventArgs);
+                }
+            };
             var openUiVerb = new AlternativeVerb //can't hijack someone else's mech
             {
                 Act = () => ToggleMechUi(uid, component, args.User),
                 Text = Loc.GetString("mech-ui-open-verb")
             };
+            // FIsh edit start - мозг устанавливается ЛКМ, без отдельного verb входа.
+            if (CanOfferFishMechEntry((uid, component), args.User, args.Using))
+                args.Verbs.Add(enterVerb);
+            // FIsh edit end
             args.Verbs.Add(openUiVerb);
         }
         else if (!IsEmpty(component))
@@ -273,52 +259,9 @@ public sealed partial class MechSystem : SharedMechSystem
         if (args.Cancelled || args.Handled)
             return;
 
-        // FIsh edit start - учитываем мозг или интерфейс, используемый для входа.
-        var pilot = args.Args.Used ?? args.User;
+        // FIsh edit start - общая проверка актора и пилота находится в Fish partial.
+        args.Handled = TryEnterMech((uid, component), args.User, args.Args.Used ?? args.User);
         // FIsh edit end
-
-        // FIsh edit start - разрешаем роботизированным мозгам входить в мех при включённой настройке.
-        if (_whitelistSystem.IsWhitelistFail(component.PilotWhitelist, pilot) && !CanInsertBrain(uid, pilot))
-        // FIsh edit end
-        {
-            _popup.PopupEntity(Loc.GetString("mech-no-enter", ("item", uid)), Identity.Entity(args.User, EntityManager));
-            return;
-        }
-
-        // FIsh edit start - проверяем чёрный список для фактического пилота.
-        if (_whitelistSystem.IsWhitelistPass(component.PilotBlacklist, pilot))
-        // FIsh edit end
-        {
-            _popup.PopupEntity(Loc.GetString("mech-no-enter", ("item", uid)), args.User);
-            return;
-        }
-
-        if (TryComp<AccessReaderComponent>(uid, out var accessReader))
-            if (!_accessReader.IsAllowed(args.Args.User, uid, accessReader))
-            {
-                _popup.PopupEntity(Loc.GetString("mech-no-access", ("item", uid)), args.User);
-                return;
-            }
-
-        // FIsh edit start - не сбрасываем руки владельца мозга при входе вставкой.
-        if (pilot == args.User)
-        {
-            foreach (var hand in _hands.EnumerateHands(args.Args.User))
-            {
-                _hands.DoDrop(args.Args.User, hand);
-            }
-        }
-        // FIsh edit end
-
-        // FIsh edit start - вставляем фактического пилота и обновляем его фракцию.
-        if (!TryInsert(uid, pilot, component))
-            return;
-
-        _factionSystem.Up(pilot, uid);
-        // FIsh edit end
-        _actionBlocker.UpdateCanMove(uid);
-
-        args.Handled = true;
     }
 
     private void OnMechExit(EntityUid uid, MechComponent component, MechExitEvent args)

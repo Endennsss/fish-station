@@ -126,9 +126,10 @@
       enum.MechEquipmentSelectUiKey.Key:
         type: MechEquipmentSelectBoundUserInterface
       # Sunrise edit end
-      # FIsh edit - интерфейс сканера массы для мехов с соответствующим действием.
+      # FIsh added start - интерфейс сканера массы для мехов с соответствующим действием.
       enum.RadarConsoleUiKey.Key:
         type: RadarConsoleBoundUserInterface
+      # FIsh added end
   - type: MeleeWeapon
     hidden: true
     animation: WeaponArcMechDisabled # Sunrise-Edit
@@ -551,6 +552,10 @@
   name: HAMTR
   description: "An experimental mech which uses a brain–computer interface to connect directly to a hamsters brain."
   components:
+  # FIsh added start - сохраняем кабину HAMTR только для хомяков.
+  - type: MechBrain
+    canInsertBrain: false
+  # FIsh added end
   - type: FootprintEmitter # Sunrise-Add
     leftBareFootState: [ footprint-suit-heavy ]
     rightBareFootState: [ footprint-suit-heavy ]
@@ -610,6 +615,10 @@
   name: Vim
   description: A miniature exosuit from Nanotrasen, developed to let the irreplaceable station pets live a little longer.
   components:
+  # FIsh added start - сохраняем ограничения Vim на пилотов-животных.
+  - type: MechBrain
+    canInsertBrain: false
+  # FIsh added end
   - type: FootprintEmitter # Sunrise-Add
   - type: Sprite
     drawdepth: Mobs

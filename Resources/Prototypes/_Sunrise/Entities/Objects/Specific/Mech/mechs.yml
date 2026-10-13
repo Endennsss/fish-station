@@ -29,7 +29,7 @@
     - NanoTrasen
   - type: Mech
     entryDelay: 1
-  # FIsh added start - разрешаем установку мозгов в шахтёрский под.
+  # FIsh added start - разрешаем установку мозгов в поды.
   - type: MechBrain
     canInsertBrain: true
   # FIsh added end
@@ -80,9 +80,10 @@
         type: MechBoundUserInterface
       enum.MechEquipmentSelectUiKey.Key:
         type: MechEquipmentSelectBoundUserInterface
-      # FIsh edit - интерфейс сканера массы для шахтёрского пода.
+      # FIsh added start - интерфейс сканера массы для подов с соответствующим действием.
       enum.RadarConsoleUiKey.Key:
         type: RadarConsoleBoundUserInterface
+      # FIsh added end
   - type: Puller
     needsHands: false
   - type: InputMover

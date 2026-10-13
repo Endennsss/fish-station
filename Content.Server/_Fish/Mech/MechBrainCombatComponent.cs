@@ -1,28 +1,28 @@
 namespace Content.Server._Fish.Mech;
 
 /// <summary>
-/// Хранит исходные ограничения мозга и компоненты, выданные на время пилотирования меха.
+/// Stores a brain's original restrictions and components temporarily added while piloting a mech.
 /// </summary>
 [RegisterComponent]
 public sealed partial class MechBrainCombatComponent : Component
 {
     /// <summary>
-    /// Исходное состояние запрета взаимодействий мозга.
+    /// The brain's original interaction restriction.
     /// </summary>
     public bool BlockInteraction;
 
     /// <summary>
-    /// Был ли BlockMovementComponent добавлен этой системой.
+    /// Whether piloting added a BlockMovementComponent that must be removed on exit.
     /// </summary>
     public bool AddedBlockMovement;
 
     /// <summary>
-    /// Был ли CombatModeComponent добавлен этой системой.
+    /// Whether piloting added a CombatModeComponent that must be removed on exit.
     /// </summary>
     public bool AddedCombatMode;
 
     /// <summary>
-    /// Исходное состояние боевого режима мозга.
+    /// The combat mode to restore when piloting ends.
     /// </summary>
     public bool InitialCombatMode;
 }

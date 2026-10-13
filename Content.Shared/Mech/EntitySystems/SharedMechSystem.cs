@@ -64,8 +64,8 @@ public abstract partial class SharedMechSystem : EntitySystem
         SubscribeLocalEvent<MechComponent, MobStateChangedEvent>(OnMobState);
         SubscribeLocalEvent<MechComponent, EntityStorageIntoContainerAttemptEvent>(OnEntityStorageDump);
         SubscribeLocalEvent<MechComponent, GetAdditionalAccessEvent>(OnGetAdditionalAccess);
-        // FIsh added start - запрещаем пилоту меха обычные ручные взаимодействия.
-        SubscribeLocalEvent<MechComponent, BeforeInteractHandEvent>(OnBeforeInteractHand);
+        // FIsh added start - подключаем расширения мехов Fish.
+        InitializeFish();
         // FIsh added end
         SubscribeLocalEvent<MechComponent, DragDropTargetEvent>(OnDragDrop);
         SubscribeLocalEvent<MechComponent, CanDropTargetEvent>(OnCanDragDrop);
@@ -154,13 +154,6 @@ public abstract partial class SharedMechSystem : EntitySystem
 
         args.Entities.Add(pilot.Value);
     }
-
-    // FIsh added start - блокируем взаимодействия, которые relay передал меху.
-    private void OnBeforeInteractHand(Entity<MechComponent> ent, ref BeforeInteractHandEvent args)
-    {
-        args.Handled = true;
-    }
-    // FIsh added end
 
     private void SetupUser(EntityUid mech, EntityUid pilot, MechComponent? component = null)
     {
@@ -420,12 +413,8 @@ public abstract partial class SharedMechSystem : EntitySystem
         if (!Resolve(uid, ref component))
             return false;
 
-        // FIsh edit start - мозговые интерфейсы не имеют InputMover, но могут управлять мехом.
-        if (component.Broken || !IsEmpty(component) ||
-            (!CanInsertBrain(uid, toInsert) && !_actionBlocker.CanMove(toInsert)))
-            return false;
-
-        return _container.CanInsert(toInsert, component.PilotSlot);
+        // FIsh edit start - учитываем настройку мозгов и ограничения пилота.
+        return CanInsertFishPilot((uid, component), toInsert);
         // FIsh edit end
     }
 
@@ -457,20 +446,9 @@ public abstract partial class SharedMechSystem : EntitySystem
         if (!CanInsert(uid, toInsert.Value, component))
             return false;
 
-        SetupUser(uid, toInsert.Value);
-        var ev = new MechSayEvent(uid, component.MessageHello);
-        RaiseLocalEvent(uid, ref ev, true);
-
-        // FIsh edit start - не оставляем relay-компоненты, если контейнер отклонил вставку.
-        if (!_container.Insert(toInsert.Value, component.PilotSlot))
-        {
-            RemoveUser(uid, toInsert.Value);
-            return false;
-        }
+        // FIsh edit start - вставка с откатом временных компонентов при отказе контейнера.
+        return DoInsertFishPilot((uid, component), toInsert.Value);
         // FIsh edit end
-
-        UpdateAppearance(uid, component);
-        return true;
     }
 
     /// <summary>
@@ -542,7 +520,7 @@ public abstract partial class SharedMechSystem : EntitySystem
             return;
 
         // FIsh edit start - не даём обработать мозг как обычный drag and drop.
-        if (CanInsertBrain(uid, args.Dragged))
+        if (!CanDragDropFishPilot((uid, component), args.Dragged))
             return;
         // FIsh edit end
 
@@ -561,7 +539,7 @@ public abstract partial class SharedMechSystem : EntitySystem
         args.Handled = true;
 
         // FIsh edit start - мозг вставляется через обычное использование меха.
-        args.CanDrop |= !component.Broken && !CanInsertBrain(uid, args.Dragged) && CanInsert(uid, args.Dragged, component);
+        args.CanDrop |= CanDragDropFishPilot((uid, component), args.Dragged);
         // FIsh edit end
     }
 

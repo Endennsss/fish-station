@@ -21,6 +21,45 @@ namespace Content.IntegrationTests.Tests._Fish.Mech;
 [TestFixture, NonParallelizable]
 public sealed class MechBrainTest
 {
+    [TestCase("MechHamtrBattery", "PositronicBrain")]
+    [TestCase("MechHamtrBattery", "PersonalAI")]
+    [TestCase("MechHamtrBattery", "MMI")]
+    [TestCase("MechVimBattery", "PositronicBrain")]
+    [TestCase("MechVimBattery", "PersonalAI")]
+    [TestCase("MechVimBattery", "MMI")]
+    public async Task RestrictedMechsRejectHeldBrains(string mechPrototype, string brainPrototype)
+    {
+        await using var pair = await PoolManager.GetServerClient();
+        var server = pair.Server;
+        var entMan = server.EntMan;
+        var map = await pair.CreateTestMap();
+        EntityUid user = default;
+        EntityUid mech = default;
+        EntityUid brain = default;
+        var pickedUp = false;
+
+        await server.WaitPost(() =>
+        {
+            user = entMan.SpawnEntity("MobHuman", map.GridCoords);
+            mech = entMan.SpawnEntity(mechPrototype, map.GridCoords);
+            brain = entMan.SpawnEntity(brainPrototype, map.GridCoords);
+            pickedUp = entMan.System<SharedHandsSystem>().TryPickupAnyHand(user, brain);
+        });
+
+        await server.WaitAssertion(() => Assert.That(pickedUp, Is.True));
+        await server.WaitPost(() =>
+            entMan.System<SharedInteractionSystem>().InteractUsing(user, brain, mech, map.GridCoords));
+        await server.WaitAssertion(() =>
+        {
+            Assert.That(entMan.GetComponent<MechComponent>(mech).PilotSlot.ContainedEntity, Is.Null);
+            Assert.That(entMan.HasComponent<MechPilotComponent>(brain), Is.False);
+            Assert.That(entMan.HasComponent<RelayInputMoverComponent>(brain), Is.False);
+            Assert.That(entMan.System<SharedHandsSystem>().IsHolding(user, brain), Is.True);
+        });
+
+        await pair.CleanReturnAsync();
+    }
+
     [Test]
     public async Task MechPilotCannotInteractWithPoweredLights()
     {
