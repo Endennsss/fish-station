@@ -7,6 +7,7 @@ using Robust.Client.Graphics;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Map;
 using Robust.Shared.Maths;
+using Robust.Shared.Prototypes;
 
 namespace Content.IntegrationTests.Tests._Fish.Graphics;
 
@@ -46,7 +47,9 @@ public sealed class FishBloomVisibilityTest
                 outline = client.EntMan.EnsureComponent<InteractionOutlineComponent>(uid);
                 outline.OnMouseEnter(uid, true, 1);
                 outlineShader = sprite.PostShader;
-                otherShader = client.ProtoMan.Index<ShaderPrototype>("Stealth").InstanceUnique();
+                // ID проверяется клиентом; серверный YAML-линтер не регистрирует ShaderPrototype.
+                ProtoId<ShaderPrototype> stealthShader = "Stealth";
+                otherShader = client.ProtoMan.Index(stealthShader).InstanceUnique();
             });
             await client.WaitAssertion(() =>
             {

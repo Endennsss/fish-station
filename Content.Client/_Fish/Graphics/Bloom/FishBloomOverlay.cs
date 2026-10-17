@@ -87,7 +87,7 @@ internal sealed partial class FishBloomOverlay : Overlay
         _composite = _prototype.Index(CompositeShader).InstanceUnique();
         _occlude = _prototype.Index(SpriteSystem.UnshadedId).Instance();
 
-        ZIndex = 100;
+        ZIndex = -100; // Плашки действий и статусные значки должны рисоваться поверх свечения.
     }
 
     protected override bool BeforeDraw(in OverlayDrawArgs args)

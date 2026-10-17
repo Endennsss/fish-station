@@ -183,7 +183,6 @@ public sealed class FishBloomOptionsTest
             await client.WaitPost(() =>
             {
                 window?.Close();
-                window?.Dispose();
                 cfg.SetCVar(FishBloomCVars.Enabled, originalEnabled);
                 cfg.SetCVar(FishBloomCVars.Strength, originalStrength);
                 cfg.SetCVar(FishBloomCVars.Quality, originalQuality);
@@ -257,7 +256,6 @@ public sealed class FishBloomOptionsTest
             await client.WaitPost(() =>
             {
                 window?.Close();
-                window?.Dispose();
                 cfg.SetCVar(FishBloomCVars.Enabled, originalEnabled);
                 cfg.SetCVar(FishBloomCVars.Strength, originalStrength);
                 cfg.SetCVar(FishBloomCVars.Quality, originalQuality);
@@ -332,7 +330,6 @@ public sealed class FishBloomOptionsTest
             await client.WaitPost(() =>
             {
                 window?.Close();
-                window?.Dispose();
                 cfg.SetCVar(FishBloomCVars.Enabled, originalEnabled);
                 cfg.SetCVar(FishBloomCVars.Strength, originalStrength);
                 cfg.SetCVar(FishBloomCVars.Quality, originalQuality);
