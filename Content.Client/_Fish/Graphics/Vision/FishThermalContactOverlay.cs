@@ -3,7 +3,6 @@ using Content.Client.Graphics;
 using Content.Client.Interactable.Components;
 using Content.Shared._Fish.Vision;
 using Content.Shared.Stealth.Components;
-using Robust.Client.ComponentTrees;
 using Robust.Client.GameObjects;
 using Robust.Client.Graphics;
 using Robust.Shared.Containers;
@@ -23,12 +22,10 @@ internal sealed partial class FishThermalContactOverlay : Overlay
     [Dependency] private IGameTiming _timing = default!;
     private readonly FishVisionSystem _vision;
     private readonly IEntityManager _entityManager;
-    private readonly SpriteTreeSystem _spriteTree;
     private readonly SpriteSystem _sprite;
     private readonly TransformSystem _transform;
     private readonly SharedContainerSystem _container;
     private readonly ShaderInstance _shader;
-    private readonly List<Entity<SpriteComponent, TransformComponent>> _sprites = new();
     private readonly List<Contact> _contacts = new();
     private readonly OverlayResourceCache<Target> _resources = new();
 
@@ -39,7 +36,6 @@ internal sealed partial class FishThermalContactOverlay : Overlay
         IoCManager.InjectDependencies(this);
         _vision = vision;
         _entityManager = entityManager;
-        _spriteTree = entityManager.System<SpriteTreeSystem>();
         _sprite = entityManager.System<SpriteSystem>();
         _transform = entityManager.System<TransformSystem>();
         _container = entityManager.System<SharedContainerSystem>();
@@ -51,6 +47,7 @@ internal sealed partial class FishThermalContactOverlay : Overlay
         _vision.ThermalViewer != null && _vision.ThermalRange > 0f &&
         args.Viewport.Eye != null && args.Viewport.Eye == _eye.CurrentEye;
 
+    /// <summary>Rejects detached, contained, concealed or otherwise hidden sprite contacts.</summary>
     internal bool CanDraw(Entity<SpriteComponent> ent)
     {
         if (ent.Comp.Deleted || !ent.Comp.Visible || ent.Comp.ContainerOccluded || ent.Comp.Color.A <= 0f ||
@@ -82,30 +79,32 @@ internal sealed partial class FishThermalContactOverlay : Overlay
         if (origin.MapId != args.MapId)
             return;
 
-        _sprites.Clear();
-        _spriteTree.QueryAabb(_sprites, args.MapId, args.WorldAABB);
         _contacts.Clear();
         var requiredSize = Vector2i.Zero;
         var rangeSquared = _vision.ThermalRange * _vision.ThermalRange;
-        foreach (var ent in _sprites)
+        var query = _entityManager.EntityQueryEnumerator<FishThermalSignatureComponent, SpriteComponent, TransformComponent>();
+        while (query.MoveNext(out var uid, out var heat, out var sprite, out var xform))
         {
-            if (!_entityManager.TryGetComponent<FishThermalSignatureComponent>(ent, out var heat) || !CanDraw(ent))
+            if (xform.MapID != args.MapId || !CanDraw((uid, sprite)))
                 continue;
-            var (position, rotation) = _transform.GetWorldPositionRotation(ent.Comp2);
+            var (position, rotation) = _transform.GetWorldPositionRotation(xform);
             if (Vector2.DistanceSquared(position, origin.Position) > rangeSquared)
                 continue;
             var color = FishThermalPalette.GetColor(heat.Temperature);
             if (color.A <= 0f)
                 continue;
 
-            var bounds = worldToScreen.TransformBox(_sprite.CalculateBounds(ent, position, rotation, eye.Rotation));
+            var worldBounds = _sprite.CalculateBounds((uid, sprite), position, rotation, eye.Rotation);
+            if (!worldBounds.CalcBoundingBox().Intersects(args.WorldAABB))
+                continue;
+            var bounds = worldToScreen.TransformBox(worldBounds);
             var start = new Vector2(MathF.Floor(bounds.Left) - 6, MathF.Floor(bounds.Bottom) - 6);
             var size = new Vector2i((int) MathF.Ceiling(bounds.Width) + 12, (int) MathF.Ceiling(bounds.Height) + 12);
             if (size.X <= 0 || size.Y <= 0 || size.X > 2048 || size.Y > 2048)
                 continue;
 
             var screenPosition = viewport.WorldToLocal(position);
-            _contacts.Add(new Contact((ent.Owner, ent.Comp1), screenPosition, start, bounds.Top, rotation + eye.Rotation, color));
+            _contacts.Add(new Contact((uid, sprite), screenPosition, start, bounds.Top, rotation + eye.Rotation, color));
             requiredSize = Vector2i.ComponentMax(requiredSize, size);
         }
 

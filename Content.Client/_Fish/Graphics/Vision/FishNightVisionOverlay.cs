@@ -11,7 +11,7 @@ using Robust.Shared.Timing;
 namespace Content.Client._Fish.Graphics.Vision;
 
 /// <summary>
-/// Applies device optics after the engine's FOV mask.
+/// Applies device optics before world indicators and the engine's final FOV mask.
 /// </summary>
 internal sealed partial class FishNightVisionOverlay : Overlay
 {
@@ -22,22 +22,24 @@ internal sealed partial class FishNightVisionOverlay : Overlay
     [Dependency] private IClyde _clyde = default!;
 
     private static readonly ProtoId<ShaderPrototype> Shader = "FishNightVision";
+    private readonly FishVisionSystem _vision;
     private readonly FishNightVisionPresentation _presentation;
     private readonly ShaderInstance _shader;
     private readonly ShaderInstance _exposure;
     private readonly OverlayResourceCache<ExposureResources> _resources = new();
     private static readonly ProtoId<ShaderPrototype> ExposureShader = "FishNightVisionExposure";
 
-    public override OverlaySpace Space => OverlaySpace.WorldSpace;
+    public override OverlaySpace Space => OverlaySpace.WorldSpaceBelowFOV;
     public override bool RequestScreenTexture => true;
 
-    public FishNightVisionOverlay(FishNightVisionPresentation presentation)
+    public FishNightVisionOverlay(FishVisionSystem vision, FishNightVisionPresentation presentation)
     {
         IoCManager.InjectDependencies(this);
+        _vision = vision;
         _presentation = presentation;
         _shader = _prototype.Index(Shader).InstanceUnique();
         _exposure = _prototype.Index(ExposureShader).InstanceUnique();
-        ZIndex = 200; // После штатного FOV: скрытый свет уже отсутствует в экранной текстуре.
+        ZIndex = -100; // До DoAfter и статусных значков, чтобы не перекрашивать интерфейс.
     }
 
     protected override bool BeforeDraw(in OverlayDrawArgs args) =>
@@ -56,6 +58,7 @@ internal sealed partial class FishNightVisionOverlay : Overlay
             var size = (Vector2) args.Viewport.Size;
 
             var exposure = DrawExposure(in args);
+            _vision.SetVisibilityMask(_shader, in args);
             _shader.SetParameter("SCREEN_TEXTURE", ScreenTexture);
             _shader.SetParameter("EXPOSURE_TEXTURE", exposure);
             _shader.SetParameter("viewport_size", size);
@@ -91,6 +94,7 @@ internal sealed partial class FishNightVisionOverlay : Overlay
         var cache = _resources.GetForViewport(args.Viewport, _ => new ExposureResources(_clyde));
         var now = _timing.RealTime;
         var reset = !cache.Initialized || cache.Revision != _presentation.Revision;
+        _vision.SetVisibilityMask(_exposure, in args);
         _exposure.SetParameter("SCREEN_TEXTURE", ScreenTexture!);
         _exposure.SetParameter("PREVIOUS_TEXTURE", cache.Previous.Texture);
         _exposure.SetParameter("reset_history", reset);

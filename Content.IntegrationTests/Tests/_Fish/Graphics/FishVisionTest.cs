@@ -1,4 +1,6 @@
+#nullable enable
 using Content.Client._Fish.Graphics.Vision;
+using Content.Server.Body.Components;
 using Content.Server.Temperature.Systems;
 using Content.Shared._Fish.Vision;
 using Content.Shared.Inventory;
@@ -17,11 +19,14 @@ namespace Content.IntegrationTests.Tests._Fish.Graphics;
 [TestFixture]
 public sealed class FishVisionTest
 {
+    // Запас на доставку серверного состояния и клиентское обновление оверлеев.
+    private const int NetworkTicks = 20;
+
     [TestCase(true, "eyes")]
     [TestCase(false, "head")]
     public async Task TwoActiveNightDevicesKeepRemainingSource(bool headFirst, string removedSlot)
     {
-        await using var pair = await PoolManager.GetServerClient(new PoolSettings { Connected = true, Dirty = true });
+        await using var pair = await PoolManager.GetServerClient();
         var server = pair.Server;
         var map = await pair.CreateTestMap();
         EntityUid wearer = default;
@@ -42,12 +47,14 @@ public sealed class FishVisionTest
         await server.WaitPost(() => server.System<InventorySystem>().TryUnequip(wearer, removedSlot, force: true));
         await server.WaitAssertion(() =>
         {
-            Assert.That(server.EntMan.TryGetComponent<FishNightVisionComponent>(wearer, out var remaining), Is.True);
+            var remaining = server.EntMan.GetComponent<FishNightVisionComponent>(wearer);
             Assert.That(remaining.Color, Is.EqualTo(Color.FromHex(removedSlot == "eyes" ? "#FFDD33" : "#FF1020")));
         });
         await server.WaitPost(() => server.EntMan.DeleteEntity(removedSlot == "eyes" ? head : eyes));
+        // Отложенное удаление компонента завершается после обработки событий удаления предмета.
         await pair.RunTicksSync(2);
         await server.WaitAssertion(() => Assert.That(server.EntMan.HasComponent<FishNightVisionComponent>(wearer), Is.False));
+        await server.WaitPost(() => server.EntMan.DeleteEntity(map.MapUid));
         await pair.CleanReturnAsync();
     }
 
@@ -61,11 +68,12 @@ public sealed class FishVisionTest
     [TestCase("ClothingEyesGlassesThermalChameleon", "eyes", null, true)]
     public async Task ExistingGogglesKeepTogglePowerAndEquipmentLifecycle(string prototype, string slot, string? expectedColor, bool thermal)
     {
-        await using var pair = await PoolManager.GetServerClient(new PoolSettings { Connected = true, Dirty = true });
+        await using var pair = await PoolManager.GetServerClient(new PoolSettings { Connected = true });
         var server = pair.Server;
         var client = pair.Client;
         var map = await pair.CreateTestMap();
         var session = server.PlayerMan.GetSessionById(client.Session!.UserId);
+        var previousEntity = session.AttachedEntity;
         EntityUid wearer = default;
         EntityUid goggles = default;
         var equipped = false;
@@ -100,11 +108,17 @@ public sealed class FishVisionTest
         await Check(false);
         await server.WaitPost(() => activated = server.System<ItemToggleSystem>().TryActivate(goggles, wearer));
         Assert.That(activated, Is.False);
+        await server.WaitPost(() =>
+        {
+            server.PlayerMan.SetAttachedEntity(session, previousEntity);
+            server.EntMan.DeleteEntity(map.MapUid);
+        });
         await pair.CleanReturnAsync();
 
         async Task Check(bool expected)
         {
-            await pair.RunTicksSync(20);
+            // Ждём доставку включения, снятия или разрядки и применения состояния на клиенте.
+            await pair.RunTicksSync(NetworkTicks);
             await server.WaitAssertion(() =>
             {
                 Assert.That(thermal ? server.EntMan.HasComponent<FishThermalVisionComponent>(wearer) :
@@ -130,6 +144,7 @@ public sealed class FishVisionTest
     [Test]
     public async Task TemperatureSurvivesDeathChangesWithCoolingAndDoesNotLoadDistantTargets()
     {
+        // Меняем NetPVS, поэтому паре нужен полный recycle перед следующим тестом.
         await using var pair = await PoolManager.GetServerClient(new PoolSettings { Connected = true, Dirty = true });
         var server = pair.Server;
         var client = pair.Client;
@@ -158,14 +173,16 @@ public sealed class FishVisionTest
         await server.WaitPost(() => server.System<TemperatureSystem>().ForceChangeTemperature(target, 273.15f));
         await CheckTemperature(273f);
         await server.WaitPost(() => server.EntMan.RemoveComponent<TemperatureComponent>(target));
-        await pair.RunTicksSync(30);
+        // Доставляем удаление сигнатуры через обычный PVS.
+        await pair.RunTicksSync(NetworkTicks);
         await client.WaitAssertion(() => Assert.That(
             client.EntMan.HasComponent<FishThermalSignatureComponent>(client.EntMan.GetEntity(targetNet)), Is.False));
         await pair.CleanReturnAsync();
 
         async Task CheckTemperature(float expected)
         {
-            await pair.RunTicksSync(30);
+            // Полный интервал выборки 0,25 с плюс запас на доставку PVS при текущей частоте тиков.
+            await pair.RunTicksSync((int) Math.Ceiling(server.Timing.TickRate * 0.25) + NetworkTicks);
             await server.WaitAssertion(() =>
             {
                 Assert.That(server.EntMan.GetComponent<FishThermalSignatureComponent>(target).Temperature,
@@ -177,6 +194,107 @@ public sealed class FishVisionTest
                 Assert.That(client.EntMan.GetComponent<FishThermalSignatureComponent>(client.EntMan.GetEntity(targetNet)).Temperature,
                     Is.EqualTo(expected).Within(2f));
                 Assert.That(client.EntMan.TryGetEntity(farNet, out _), Is.False);
+            });
+        }
+    }
+
+    [Test]
+    public async Task TemperatureIsRestrictedToEligibleSessionsAndExpiresWithoutViewers()
+    {
+        // Дополнительная сессия и изменение NetPVS требуют полного recycle пары.
+        await using var pair = await PoolManager.GetServerClient(new PoolSettings { Connected = true, Dirty = true });
+        var server = pair.Server;
+        var client = pair.Client;
+        var map = await pair.CreateTestMap();
+        var session = server.PlayerMan.GetSessionById(client.Session!.UserId);
+        var thermalSession = await server.AddDummySession();
+        EntityUid wearer = default;
+        EntityUid otherWearer = default;
+        EntityUid target = default;
+        NetEntity targetNet = default;
+        await server.WaitPost(() =>
+        {
+            server.CfgMan.SetCVar(Robust.Shared.CVars.NetPVS, true);
+            wearer = server.EntMan.SpawnEntity("MobHuman", map.GridCoords);
+            otherWearer = server.EntMan.SpawnEntity("MobHuman", map.GridCoords);
+            target = server.EntMan.SpawnEntity("MobHuman", new EntityCoordinates(map.Grid, 2, 0));
+            targetNet = server.EntMan.GetNetEntity(target);
+            server.PlayerMan.SetAttachedEntity(session, wearer);
+            server.PlayerMan.SetAttachedEntity(thermalSession, otherWearer);
+            server.EntMan.AddComponent<FishThermalVisionComponent>(otherWearer);
+            // Терморегуляция живого тела не должна менять контрольную температуру между выборками.
+            server.EntMan.RemoveComponent<ThermalRegulatorComponent>(target);
+            server.System<MobStateSystem>().ChangeMobState(target, MobState.Dead);
+            server.EntMan.GetComponent<TemperatureComponent>(target).AtmosTemperatureTransferEfficiency = 0f;
+            server.System<TemperatureSystem>().ForceChangeTemperature(target, 310.15f);
+        });
+        await WaitForSample();
+        await client.WaitAssertion(() =>
+        {
+            Assert.That(client.EntMan.TryGetEntity(targetNet, out var visibleTarget), Is.True);
+            Assert.That(client.EntMan.HasComponent<FishThermalSignatureComponent>(visibleTarget), Is.False,
+                "An unequipped client must not receive temperatures sampled for another player.");
+        });
+        await server.WaitAssertion(() =>
+        {
+            var signature = server.EntMan.GetComponent<FishThermalSignatureComponent>(target);
+            Assert.That(signature.SessionSpecific, Is.True);
+            Assert.That(server.EntMan.CanGetComponentState(signature, thermalSession), Is.True);
+            Assert.That(server.EntMan.CanGetComponentState(signature, session), Is.False);
+        });
+
+        await server.WaitPost(() => server.EntMan.AddComponent<FishThermalVisionComponent>(wearer));
+        await WaitForSample();
+        await AssertClientTemperature(310f);
+        await server.WaitPost(() =>
+        {
+            server.EntMan.RemoveComponent<FishThermalVisionComponent>(wearer);
+            server.System<TemperatureSystem>().ForceChangeTemperature(target, 273.15f);
+        });
+        await WaitForSample();
+        // Уже полученные сведения нельзя отозвать из памяти клиента, но новые значения ему недоступны.
+        await AssertNoNewClientTemperature(310f);
+
+        await server.WaitPost(() => server.EntMan.AddComponent<FishThermalVisionComponent>(wearer));
+        await WaitForSample();
+        await AssertClientTemperature(273f);
+        await server.WaitPost(() =>
+        {
+            var vision = server.EntMan.GetComponent<FishThermalVisionComponent>(wearer);
+            vision.Range = 0.5f;
+            server.EntMan.Dirty(wearer, vision);
+            server.System<TemperatureSystem>().ForceChangeTemperature(target, 320.15f);
+        });
+        await WaitForSample();
+        await AssertNoNewClientTemperature(273f);
+        await server.WaitPost(() => server.EntMan.RemoveComponent<FishThermalVisionComponent>(otherWearer));
+        await WaitForSample();
+        await server.WaitAssertion(() => Assert.That(server.EntMan.HasComponent<FishThermalSignatureComponent>(target), Is.False));
+        await client.WaitAssertion(() => Assert.That(
+            client.EntMan.HasComponent<FishThermalSignatureComponent>(client.EntMan.GetEntity(targetNet)), Is.False));
+        await pair.CleanReturnAsync();
+
+        async Task WaitForSample()
+        {
+            // Ждём интервал серверной выборки и доставку компонентного состояния через PVS.
+            await pair.RunTicksSync((int) Math.Ceiling(server.Timing.TickRate * 0.25) + NetworkTicks);
+        }
+
+        async Task AssertClientTemperature(float expected)
+        {
+            await client.WaitAssertion(() => Assert.That(
+                client.EntMan.GetComponent<FishThermalSignatureComponent>(client.EntMan.GetEntity(targetNet)).Temperature,
+                Is.EqualTo(expected)));
+        }
+
+        async Task AssertNoNewClientTemperature(float lastReceived)
+        {
+            await server.WaitAssertion(() => Assert.That(server.EntMan.CanGetComponentState(
+                server.EntMan.GetComponent<FishThermalSignatureComponent>(target), session), Is.False));
+            await client.WaitAssertion(() =>
+            {
+                if (client.EntMan.TryGetComponent<FishThermalSignatureComponent>(client.EntMan.GetEntity(targetNet), out var signature))
+                    Assert.That(signature.Temperature, Is.EqualTo(lastReceived));
             });
         }
     }

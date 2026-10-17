@@ -8,7 +8,7 @@ using Content.Shared.CCVar;
 
 namespace Content.Client._Fish.Graphics.Vision;
 
-/// <summary>Applies the cold world palette after the engine has hidden geometry outside FOV.</summary>
+/// <summary>Applies the cold world palette before world indicators and the final FOV mask.</summary>
 internal sealed partial class FishThermalWorldOverlay : Overlay
 {
     private static readonly ProtoId<ShaderPrototype> Shader = "FishThermalWorld";
@@ -18,16 +18,17 @@ internal sealed partial class FishThermalWorldOverlay : Overlay
     [Dependency] private IGameTiming _timing = default!;
     private readonly FishVisionSystem _vision;
     private readonly ShaderInstance _shader;
-    private readonly FishThermalExposure _exposure = new();
-    public override OverlaySpace Space => OverlaySpace.WorldSpace;
+    private readonly FishThermalExposure _exposure;
+    public override OverlaySpace Space => OverlaySpace.WorldSpaceBelowFOV;
     public override bool RequestScreenTexture => true;
 
     public FishThermalWorldOverlay(FishVisionSystem vision)
     {
         IoCManager.InjectDependencies(this);
         _vision = vision;
+        _exposure = new(vision);
         _shader = _prototype.Index(Shader).InstanceUnique();
-        ZIndex = 300;
+        ZIndex = -99; // Плашки действий и значки рисуются поверх холодной палитры.
     }
 
     protected override bool BeforeDraw(in OverlayDrawArgs args) =>

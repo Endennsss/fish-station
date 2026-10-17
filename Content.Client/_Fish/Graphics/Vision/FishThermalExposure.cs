@@ -18,6 +18,12 @@ internal sealed class FishThermalExposure : IDisposable
     private readonly ShaderInstance _shader = IoCManager.Resolve<IPrototypeManager>()
         .Index(ExposureShader).InstanceUnique();
     private readonly OverlayResourceCache<History> _history = new();
+    private readonly FishVisionSystem _vision;
+
+    public FishThermalExposure(FishVisionSystem vision)
+    {
+        _vision = vision;
+    }
 
     internal static Vector2 Adaptation(float elapsed, bool reducedMotion) => reducedMotion ? Vector2.One : new(
         1f - MathF.Exp(-Math.Max(0f, elapsed) / 0.25f),
@@ -27,6 +33,7 @@ internal sealed class FishThermalExposure : IDisposable
     {
         var history = _history.GetForViewport(args.Viewport, _ => new History(_clyde));
         var now = _timing.RealTime;
+        _vision.SetVisibilityMask(_shader, in args);
         _shader.SetParameter("SCREEN_TEXTURE", source);
         _shader.SetParameter("PREVIOUS_TEXTURE", history.Previous.Texture);
         _shader.SetParameter("reset_history", !history.Initialized || history.Activation != activation);
