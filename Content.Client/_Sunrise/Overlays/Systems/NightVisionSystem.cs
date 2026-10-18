@@ -53,8 +53,10 @@ public sealed partial class NightVisionSystem : EntitySystem
 
     private void AttemptAddVision(EntityUid uid, NightVisionComponent comp)
     {
-        if (_fishVisionOverride) // FIsh edit - прибор использует отдельные проходы освещения и оптики.
+        // Fish-start - прибор использует отдельные проходы освещения и оптики.
+        if (_fishVisionOverride)
             return;
+        // Fish-end
 
         if (_player.LocalSession?.AttachedEntity != uid)
             return;

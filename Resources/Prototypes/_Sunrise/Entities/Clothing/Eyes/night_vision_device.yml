@@ -16,11 +16,11 @@
     action: NVDToggleAction
     mustEquip: true
     disableOnUnequip: true
-  - type: FishVisionDevice # FIsh edit - согласование нескольких приборов.
+  - type: FishVisionDevice # Fish-edit - согласование нескольких приборов.
   - type: ComponentToggler
     parent: true
     components:
-      - type: FishNightVision # FIsh edit - отдельная оптика приборов.
+      - type: FishNightVision # Fish-edit - отдельная оптика приборов.
 
 - type: entity
   name: NVD
@@ -126,8 +126,10 @@
   - type: ComponentToggler
     parent: true
     components:
-      - type: FishNightVision # FIsh edit - красный люминофор синдиката.
+      # Fish-start - красный люминофор синдиката.
+      - type: FishNightVision
         color: "#FF1020"
+      # Fish-end
 
 - type: entity
   parent: ClothingEyesNVD
@@ -164,9 +166,11 @@
   - type: ComponentToggler
     parent: true
     components:
-      - type: FishNightVision # FIsh edit - самодельный прибор сохраняет слабое усиление.
+      # Fish-start - жёлтая оптика и слабое усиление самодельного прибора.
+      - type: FishNightVision
         color: "#FFDD33"
         lightingColor: "#FFFFFF19"
+      # Fish-end
   - type: Tag
     tags:
     - NVDHandcrafted
