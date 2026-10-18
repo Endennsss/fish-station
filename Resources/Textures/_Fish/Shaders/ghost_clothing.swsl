@@ -1,0 +1,10 @@
+light_mode unshaded;
+
+// UV2 идёт снизу вверх внутри кадра и не зависит от положения спрайта в атласе.
+const highp float waist = 13.0 / 32.0;
+
+void fragment()
+{
+    COLOR = zTexture(UV);
+    COLOR.a *= step(waist, UV2.y);
+}

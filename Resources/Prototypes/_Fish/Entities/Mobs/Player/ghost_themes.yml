@@ -1,5 +1,17 @@
 
 - type: ghostTheme
+  id: FishClassic
+  name: ghost-theme-fish-classic
+  color: "#fff"
+  sponsorOnly: false
+  useUpstreamSprite: false
+  showHeadAppearance: true
+  showClothing: true
+  sprite:
+    sprite: Mobs/Ghosts/ghost_human.rsi
+    state: animated
+
+- type: ghostTheme
   id: Turtle
   name: ghost-theme-turtle
   color: "#fff8"

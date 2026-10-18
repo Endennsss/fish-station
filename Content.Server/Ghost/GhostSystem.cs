@@ -520,6 +520,11 @@ namespace Content.Server.Ghost
                 _ghostState.SetGhostSprite((ghost, state), mind);
             }
 
+            // Fish-start
+            var spawned = new GhostSpawnedEvent((mind, mind.Comp));
+            RaiseLocalEvent(ghost, ref spawned);
+            // Fish-end
+
             // Try setting the ghost entity name to either the character name or the player name.
             // If all else fails, it'll default to the default entity prototype name, "observer".
             // However, that should rarely happen.

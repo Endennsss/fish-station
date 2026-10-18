@@ -17,6 +17,7 @@ public sealed partial class GhostThemeSystem : EntitySystem
         base.Initialize();
         SubscribeLocalEvent<GhostThemeComponent, AfterAutoHandleStateEvent>(OnInit);
         SubscribeLocalEvent<GhostThemeComponent, ComponentShutdown>(OnShutdown);
+        InitializeGhostAppearance(); // Fish-edit
     }
 
     private void OnInit(Entity<GhostThemeComponent> ent, ref AfterAutoHandleStateEvent args)
@@ -43,6 +44,8 @@ public sealed partial class GhostThemeSystem : EntitySystem
 
         if (_sprite.LayerMapTryGet(spriteEnt, UpstreamGhostLayer, out var upstreamLayer, false))
             _sprite.LayerSetVisible(spriteEnt, upstreamLayer, false);
+
+        RefreshSavedAppearance(ent); // Fish-edit
     }
 
     private void OnShutdown(Entity<GhostThemeComponent> ent, ref ComponentShutdown args)
@@ -53,6 +56,7 @@ public sealed partial class GhostThemeSystem : EntitySystem
 
     private void RestoreUpstreamSprite(Entity<SpriteComponent?> ent)
     {
+        ClearSavedAppearance(ent); // Fish-edit
         _sprite.RemoveLayer(ent, GhostThemeVisualLayers.Theme, false);
 
         if (_sprite.LayerMapTryGet(ent, UpstreamGhostLayer, out var upstreamLayer, false))

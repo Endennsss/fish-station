@@ -100,6 +100,11 @@ public sealed partial class AGhostCommand : LocalizedCommands
         var ghost = _entities.SpawnEntity(GameTicker.AdminObserverPrototypeName, coordinates);
         transformSystem.AttachToGridOrMap(ghost, _entities.GetComponent<TransformComponent>(ghost));
 
+        // Fish-start
+        var spawned = new GhostSpawnedEvent((mindId, mind));
+        _entities.EventBus.RaiseLocalEvent(ghost, ref spawned);
+        // Fish-end
+
         if (canReturn)
         {
             // TODO: Remove duplication between all this and "GamePreset.OnGhostAttempt()"...

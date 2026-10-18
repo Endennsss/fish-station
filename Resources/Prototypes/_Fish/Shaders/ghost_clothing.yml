@@ -1,0 +1,4 @@
+- type: shader
+  id: FishGhostUpperClothing
+  kind: source
+  path: "/Textures/_Fish/Shaders/ghost_clothing.swsl"
