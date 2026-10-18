@@ -38,6 +38,41 @@ public sealed class FishBloomOverlayTest
         Assert.That(reduced, Is.EqualTo(original));
     }
 
+    [TestCase(256, 256)]
+    [TestCase(256, 64)]
+    [TestCase(64, 256)]
+    [TestCase(128, 128)]
+    public void AtlasRestoresBatchCapacityAfterLargeSourceLeavesView(int width, int height)
+    {
+        var original = FishBloomOverlay.GetAtlasLayout(16, new Vector2i(width, height), 4, default);
+        var reduced = FishBloomOverlay.GetAtlasLayout(16, new Vector2i(64, 64), 4, original);
+
+        Assert.That(reduced.CellSize, Is.EqualTo(new Vector2i(64, 64)));
+        Assert.That(reduced.Grid, Is.EqualTo(new Vector2i(4, 4)),
+            "All sixteen remaining sources must fit in one batch after the large source leaves.");
+    }
+
+    [Test]
+    public void AtlasShrinksOversizedAxisWhileAnotherAxisGrows()
+    {
+        var original = FishBloomOverlay.GetAtlasLayout(16, new Vector2i(256, 64), 4, default);
+        var changed = FishBloomOverlay.GetAtlasLayout(16, new Vector2i(64, 96), 4, original);
+
+        Assert.That(changed.CellSize, Is.EqualTo(new Vector2i(64, 96)));
+        Assert.That(changed.Grid, Is.EqualTo(new Vector2i(4, 2)));
+    }
+
+    [TestCase(18, 3)]
+    [TestCase(3, 18)]
+    public void AtlasRebuildsLayoutWhenZoomChangesPadding(int previousPadding, int padding)
+    {
+        var original = FishBloomOverlay.GetAtlasLayout(5, new Vector2i(64, 64), 4, default, previousPadding);
+        var zoomed = FishBloomOverlay.GetAtlasLayout(1, new Vector2i(48, 48), 4, original, padding);
+
+        Assert.That(zoomed.CellSize, Is.EqualTo(new Vector2i(48, 48)));
+        Assert.That(zoomed.Grid, Is.EqualTo(Vector2i.One));
+    }
+
     [Test]
     public void AtlasGrowsWhenAdditionalSourcesNeedSpace()
     {

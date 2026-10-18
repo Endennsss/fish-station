@@ -16,7 +16,7 @@
                 <CheckBox Name="ParallaxLowQualityCheckBox" Text="{Loc 'ui-options-parallax-low-quality'}" />
                 <CheckBox Name="AmbientOcclusionCheckBox" Text="{Loc 'ui-options-ambient-occlusion'}" />
 
-                <!-- FIsh added start - настройки свечения Fish -->
+                <!-- Fish-start - настройки свечения Fish -->
                 <Label Text="{Loc 'fish-options-bloom-label'}" StyleClasses="LabelKeyText" />
                 <CheckBox Name="FishBloomEnabledCheckBox"
                           Text="{Loc 'fish-options-bloom-enabled'}"
@@ -26,7 +26,7 @@
                 <ui:OptionDropDown Name="FishBloomQualityDropDown"
                                    Title="{Loc 'fish-options-bloom-quality'}"
                                    ToolTip="{Loc 'fish-options-bloom-quality-tooltip'}" />
-                <!-- FIsh added end -->
+                <!-- Fish-end -->
 
                 <!-- Interface -->
                 <Label Text="{Loc 'ui-options-interface-label'}" StyleClasses="LabelKeyText"/>

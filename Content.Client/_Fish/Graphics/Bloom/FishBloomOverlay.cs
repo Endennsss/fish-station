@@ -170,8 +170,9 @@ internal sealed partial class FishBloomOverlay : Overlay
                 resources.Divisor = divisor;
             }
 
-            // При уходе источников сохраняем ёмкость, чтобы движение камеры не пересоздавало четыре текстуры.
-            resources.AtlasLayout = GetAtlasLayout(_sourceIndices.Count, localSize, divisor, resources.AtlasLayout);
+            // Сохраняем ёмкость при небольших изменениях; смена рамки и уход крупного источника пересчитывают атлас.
+            resources.AtlasLayout = GetAtlasLayout(
+                _sourceIndices.Count, localSize, divisor, resources.AtlasLayout, padding);
             localSize = resources.AtlasLayout.CellSize;
             var atlasGrid = resources.AtlasLayout.Grid;
             var atlasSize = new Vector2i(localSize.X * atlasGrid.X, localSize.Y * atlasGrid.Y);

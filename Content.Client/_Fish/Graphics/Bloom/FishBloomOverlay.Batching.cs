@@ -8,27 +8,36 @@ internal sealed partial class FishBloomOverlay
 {
     // Несколько независимых источников используют общие проходы, не смешивая свои маски перекрытия.
     private const int AtlasSourceSize = 1024;
+    private const int AtlasShrinkFactor = 2;
 
     /// <summary>
-    /// Retains atlas capacity until cells need to grow, without exceeding the source texture budget.
+    /// Retains atlas capacity across small changes and shrinks cells after a significant reduction.
+    /// Padding changes invalidate the previous layout.
     /// Pass an empty layout when the viewport resolution or quality changes.
     /// </summary>
     internal static BloomAtlasLayout GetAtlasLayout(
         int sourceCount,
         Vector2i requiredCellSize,
         int divisor,
-        BloomAtlasLayout previous)
+        BloomAtlasLayout previous,
+        int padding = TargetPadding)
     {
+        // Смена рамки требует новой раскладки; двукратное уменьшение отличает уход крупного источника от колебаний границ.
+        if (previous.Padding != padding ||
+            requiredCellSize.X <= previous.CellSize.X / AtlasShrinkFactor ||
+            requiredCellSize.Y <= previous.CellSize.Y / AtlasShrinkFactor)
+            previous = default;
+
         var cellSize = Vector2i.ComponentMax(requiredCellSize, previous.CellSize);
         var requiredGrid = GetAtlasGrid(sourceCount, cellSize, divisor);
         var maxGrid = new Vector2i(
             Math.Max(1, AtlasSourceSize / divisor / cellSize.X),
             Math.Max(1, AtlasSourceSize / divisor / cellSize.Y));
         var grid = Vector2i.ComponentMin(Vector2i.ComponentMax(requiredGrid, previous.Grid), maxGrid);
-        return new BloomAtlasLayout(cellSize, grid);
+        return new BloomAtlasLayout(cellSize, grid, padding);
     }
 
-    internal readonly record struct BloomAtlasLayout(Vector2i CellSize, Vector2i Grid);
+    internal readonly record struct BloomAtlasLayout(Vector2i CellSize, Vector2i Grid, int Padding);
 
     internal static Vector2i GetAtlasGrid(int sourceCount, Vector2i cellSize, int divisor)
     {
