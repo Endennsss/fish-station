@@ -1,6 +1,7 @@
 using Content.Shared._Fish.Vision;
 using Content.Shared._Sunrise.ThermalVision;
 using Content.Shared.Eye.Blinding.Components;
+using Robust.Client.GameObjects;
 using Robust.Client.Graphics;
 using Robust.Client.Player;
 using Robust.Shared.Map.Components;
@@ -71,6 +72,11 @@ public sealed partial class FishVisionSystem : EntitySystem
         shader.SetParameter("lighting_mask_enabled", enabled);
         shader.SetParameter("VISION_LIGHT_TEXTURE", args.Viewport.LightRenderTarget.Texture);
     }
+
+    /// <summary>
+    /// Reports whether a sprite becomes a thermal contact; cloaked bodies keep emitting heat.
+    /// </summary>
+    internal bool CanDrawThermalContact(Entity<SpriteComponent> sprite) => _contacts.CanDraw(sprite);
 
     public override void FrameUpdate(float frameTime)
     {
