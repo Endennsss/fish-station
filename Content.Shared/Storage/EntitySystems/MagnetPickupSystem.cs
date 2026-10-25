@@ -1,3 +1,4 @@
+using Content.Shared._Fish.Storage; // Fish-edit: фильтр магнитного подбора.
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Inventory;
 using Content.Shared.Item.ItemToggle.Components;
@@ -106,6 +107,13 @@ public sealed partial class MagnetPickupSystem : EntitySystem
 
                 if (near == parentUid)
                     continue;
+
+                // Fish-start: настройки автоподбора проверяются до слияния стаков.
+                var pickupAttempt = new MagnetPickupAttemptEvent(near);
+                RaiseLocalEvent(uid, ref pickupAttempt);
+                if (pickupAttempt.Cancelled)
+                    continue;
+                // Fish-end
 
                 // TODO: Probably move this to storage somewhere when it gets cleaned up
                 // TODO: This sucks but you need to fix a lot of stuff to make it better

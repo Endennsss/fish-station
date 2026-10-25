@@ -1749,6 +1749,8 @@
   id: MagazBagWM
   parent: OreBag
   components:
+  - type: FishOreBagFilter
+    enabled: false
   - type: Item
     size: Small #Ginormous #Large
   - type: Storage

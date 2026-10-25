@@ -4,6 +4,13 @@
   parent: BaseStorageItem
   description: A robust bag for salvage specialists and miners alike to carry large amounts of ore. Magnetises any nearby ores when attached to a belt.
   components:
+  # Fish-start: отдельное окно настройки магнитного подбора.
+  - type: FishOreBagFilter
+  - type: UserInterface
+    interfaces:
+      enum.FishOreBagFilterUiKey.Key:
+        type: FishOreBagFilterBoundUserInterface
+  # Fish-end
   - type: MagnetPickup
     range: 3.75 # Sunrise-add
   - type: ItemToggle # Sunrise start
