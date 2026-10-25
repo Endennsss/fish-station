@@ -2,6 +2,7 @@
 # Цвета совпадают с прежними вариантами Sunrise, чтобы не менять внешний вид.
 - type: entity
   id: FishHardsuitHelmetNightVisionCyan
+  suffix: Fish
   abstract: true
   components:
   - type: FishVisionDevice
@@ -14,6 +15,7 @@
 
 - type: entity
   id: FishHardsuitHelmetNightVisionWhite
+  suffix: Fish
   abstract: true
   components:
   - type: FishVisionDevice
@@ -26,6 +28,7 @@
 
 - type: entity
   id: FishHardsuitHelmetNightVisionMint
+  suffix: Fish
   abstract: true
   components:
   - type: FishVisionDevice
@@ -38,6 +41,7 @@
 
 - type: entity
   id: FishHardsuitHelmetNightVisionPurple
+  suffix: Fish
   abstract: true
   components:
   - type: FishVisionDevice
