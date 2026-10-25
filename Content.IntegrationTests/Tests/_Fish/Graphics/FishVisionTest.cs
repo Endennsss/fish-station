@@ -143,6 +143,91 @@ public sealed class FishVisionTest
         }
     }
 
+    [TestCase("ClothingMaskGasDeathSquadFish", "mask", null, true)]
+    [TestCase("ClothingHeadHelmetHardsuitERTLeader", "head", "#00FFFF", false)]
+    [TestCase("ClothingHeadHelmetHardsuitERTChaplain", "head", "#FFFFFF", false)]
+    [TestCase("ClothingHeadHelmetHardsuitERTMedical", "head", "#ADFFEC", false)]
+    [TestCase("ClothingHeadHelmetHardsuitERTJanitor", "head", "#CBADFF", false)]
+    [TestCase("ClothingHeadHelmetCBURN", "head", "#00FFFF", false)]
+    [TestCase("ClothingHeadHelmetHardsuitDeathsquadFish", "head", null, false)]
+    [TestCase("FishClothingHeadHelmetHardsuitCentcomBlack", "head", "#00FFFF", false)]
+    public async Task HardsuitAndMaskDevicesResolveFromTheirSlots(string prototype, string slot, string? expectedColor, bool thermal)
+    {
+        await using var pair = await PoolManager.GetServerClient(new PoolSettings { Connected = true });
+        var server = pair.Server;
+        var client = pair.Client;
+        var map = await pair.CreateTestMap();
+        var session = server.PlayerMan.GetSessionById(client.Session!.UserId);
+        var previousEntity = session.AttachedEntity;
+        EntityUid wearer = default;
+        EntityUid device = default;
+        var equipped = false;
+        var activated = false;
+        await server.WaitPost(() =>
+        {
+            wearer = server.EntMan.SpawnEntity("MobHuman", map.GridCoords);
+            device = server.EntMan.SpawnEntity(prototype, map.GridCoords);
+            server.PlayerMan.SetAttachedEntity(session, wearer);
+            equipped = server.System<InventorySystem>().TryEquip(wearer, device, slot, force: true);
+        });
+        Assert.That(equipped, Is.True);
+        // Надетый, но выключенный прибор не должен давать оптику.
+        await Check(false);
+
+        await server.WaitPost(() => activated = server.System<ItemToggleSystem>().TryActivate(device, wearer));
+        Assert.That(activated, Is.True);
+        await Check(true);
+
+        // Снятие прибора обязано убирать оптику с носителя, а не оставлять её висеть.
+        await server.WaitPost(() => equipped = server.System<InventorySystem>().TryUnequip(wearer, slot, force: true));
+        Assert.That(equipped, Is.True);
+        await Check(false);
+
+        await server.WaitPost(() =>
+        {
+            server.PlayerMan.SetAttachedEntity(session, previousEntity);
+            server.EntMan.DeleteEntity(map.MapUid);
+        });
+        await pair.CleanReturnAsync();
+
+        async Task Check(bool expected)
+        {
+            // Ждём доставку включения или снятия и применения состояния на клиенте.
+            await pair.RunTicksSync(NetworkTicks);
+            await server.WaitAssertion(() =>
+            {
+                if (thermal)
+                {
+                    Assert.That(server.EntMan.TryGetComponent<FishThermalVisionComponent>(wearer, out var vision),
+                        Is.EqualTo(expected));
+                    if (expected)
+                        Assert.That(vision!.Range, Is.GreaterThan(0f));
+                }
+                else
+                {
+                    Assert.That(server.EntMan.TryGetComponent<FishNightVisionComponent>(wearer, out var vision),
+                        Is.EqualTo(expected));
+                    if (expected && expectedColor != null)
+                        Assert.That(vision!.Color, Is.EqualTo(Color.FromHex(expectedColor)));
+                }
+            });
+            await client.WaitAssertion(() =>
+            {
+                var vision = client.System<FishVisionSystem>();
+                Assert.That(thermal ? vision.ThermalViewer != null : vision.NightPresentation.Source != null,
+                    Is.EqualTo(expected));
+                if (expected && !thermal)
+                {
+                    var color = vision.NightPresentation.Color;
+                    if (expectedColor != null)
+                        Assert.That(color, Is.EqualTo(Color.FromHex(expectedColor)));
+                    else
+                        Assert.That(color.G, Is.GreaterThan(color.R));
+                }
+            });
+        }
+    }
+
     [Test]
     public async Task CloakedBodyStaysVisibleToThermalContacts()
     {

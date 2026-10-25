@@ -1,6 +1,5 @@
 using Content.Shared._Fish.Vision;
 using Content.Shared._Sunrise.ThermalVision;
-using Content.Shared.Eye.Blinding.Components;
 using Robust.Client.GameObjects;
 using Robust.Client.Graphics;
 using Robust.Client.Player;
@@ -86,9 +85,9 @@ public sealed partial class FishVisionSystem : EntitySystem
         FishNightVisionComponent? night = null;
         if (viewer != null && !TerminatingOrDeleted(viewer))
         {
-            if (!HasComp<EyeProtectionComponent>(viewer))
-                TryComp(viewer, out thermal);
-            if (thermal == null && (HasComp<EyeProtectionComponent>(viewer) || !HasComp<ThermalVisionComponent>(viewer)))
+            // Защита глаз не мешает собственной оптике прибора: термальная маска или шлем сами могут её давать.
+            TryComp(viewer, out thermal);
+            if (thermal == null && !HasComp<ThermalVisionComponent>(viewer))
                 TryComp(viewer, out night);
         }
 
