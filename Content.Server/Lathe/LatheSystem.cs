@@ -236,6 +236,10 @@ namespace Content.Server.Lathe
                 {
                     var result = Spawn(resultProto, Transform(uid).Coordinates);
                     EnsureComp<DontSellComponent>(result); // Sunrise-Edit
+                    // Fish-start: засчитываем только готовую продукцию до слияния стеков.
+                    var experimentEvent = new Content.Shared._Fish.Research.FishLatheProducedEvent(currentRecipe.ID, result);
+                    RaiseLocalEvent(uid, ref experimentEvent);
+                    // Fish-end
                     _stack.TryMergeToContacts(result);
                     // Sunrise-Start
                     if (currentRecipe.PrintTicket)
@@ -433,13 +437,19 @@ namespace Content.Server.Lathe
         /// Iterator returning adjusted amount of material needed to
         /// produce a given recipe
         /// </summary>
-        private static IEnumerable<(ProtoId<MaterialPrototype> mat, int amount)> GetAdjustedAmount(LatheComponent lathe, LatheRecipePrototype recipe)
+        private IEnumerable<(ProtoId<MaterialPrototype> mat, int amount)> GetAdjustedAmount(LatheComponent lathe, LatheRecipePrototype recipe) // Fish-edit: учитываем прототип материала при расчёте расхода.
         {
             foreach (var (mat, amount) in recipe.Materials)
             {
                 var adjustedAmount = recipe.ApplyMaterialDiscount
                     ? (int)(amount * lathe.MaterialUseMultiplier)
                     : amount;
+
+                // Fish-start: неделимые материалы списываются и возвращаются целыми единицами.
+                var material = ProtoMan.Index(mat);
+                if (material.FishLatheUnit > 1)
+                    adjustedAmount = AdjustMaterial(material, amount, recipe.ApplyMaterialDiscount, lathe.MaterialUseMultiplier);
+                // Fish-end
 
                 yield return (mat, adjustedAmount);
             }
@@ -478,22 +488,7 @@ namespace Content.Server.Lathe
 
             if (component.CurrentRecipe != null)
             {
-                if (component.Queue.Count > 0)
-                {
-                    // Batch abandoned while printing last item, need to create a one-item batch
-                    var batch = component.Queue.First();
-                    if (batch.Recipe != component.CurrentRecipe)
-                    {
-                        var newBatch = new LatheRecipeBatch(component.CurrentRecipe.Value, 0, 1);
-                        component.Queue.AddFirst(newBatch);
-                    }
-                    else if (batch.ItemsPrinted > 0)
-                    {
-                        batch.ItemsPrinted--;
-                    }
-                }
-
-                RefundCurrentRecipe(uid, component);
+                RequeueInterruptedRecipe(component); // Fish-edit: сохраняем оплаченный резерв при перебоях питания.
                 component.CurrentRecipe = null;
             }
             RemCompDeferred<LatheProducingComponent>(uid);

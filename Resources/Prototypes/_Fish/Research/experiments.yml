@@ -1,0 +1,92 @@
+- type: fishResearchExperiment
+  id: FishAnomalySurvey
+  suffix: Fish
+  name: fish-research-experiment-anomaly-survey-name
+  description: fish-research-experiment-anomaly-survey-description
+  kind: Anomaly
+  requiredSamples: 3
+  rewardTechnology: AdvancedAnomalyResearch
+
+- type: fishResearchExperiment
+  id: FishControlledAnomaly
+  suffix: Fish
+  name: fish-research-experiment-controlled-anomaly-name
+  description: fish-research-experiment-controlled-anomaly-description
+  kind: Anomaly
+  minimumSeverity: 0.5
+  minimumStability: 0.15
+  maximumStability: 0.5
+  minimumHealth: 0.5
+  rewardTechnology: AnomalyCoreHarnessing
+
+- type: fishResearchExperiment
+  id: FishArtifactStudy
+  suffix: Fish
+  name: fish-research-experiment-artifact-study-name
+  description: fish-research-experiment-artifact-study-description
+  kind: Artifact
+  requiredSamples: 2
+  minimumUnlockedNodes: 3
+  rewardTechnology: AbnormalArtifactManipulation
+
+- type: fishResearchExperiment
+  id: FishBiologicalSurvey
+  suffix: Fish
+  name: fish-research-experiment-biological-survey-name
+  description: fish-research-experiment-biological-survey-description
+  kind: Humanoid
+  requiredSamples: 3
+  rewardTechnology: MechanizedMedicalTreatment
+
+- type: fishResearchExperiment
+  id: FishPowerCellStudy
+  suffix: Fish
+  name: fish-research-experiment-power-cell-study-name
+  description: fish-research-experiment-power-cell-study-description
+  kind: PowerCell
+  requiredSamples: 3
+  minimumChargeFraction: 0.9
+  rewardTechnology: FishMicroreactors
+
+- type: fishResearchExperiment
+  id: FishRoboticsFabrication
+  suffix: Fish
+  name: fish-research-experiment-robotics-fabrication-name
+  description: fish-research-experiment-robotics-fabrication-description
+  kind: Manufacture
+  requiredSamples: 3
+  acceptedRecipes:
+  - CyborgEndoskeleton
+  - TorsoBorg
+  - LightHeadBorg
+  - MMI
+  - ProximitySensor
+  rewardTechnology: BiochemicalStasis
+
+- type: fishResearchExperiment
+  id: FishMedicalFabrication
+  suffix: Fish
+  name: fish-research-experiment-medical-fabrication-name
+  description: fish-research-experiment-medical-fabrication-description
+  kind: Manufacture
+  requiredSamples: 3
+  acceptedRecipes:
+  - HandheldHealthAnalyzer
+  - Scalpel
+  - Hemostat
+  - Cautery
+  - Retractor
+  - Saw
+  rewardTechnology: AdvancedCleaning
+
+- type: fishResearchExperiment
+  id: FishUraniumProcessingExperiment
+  suffix: Fish
+  name: fish-research-experiment-uranium-processing-name
+  description: fish-research-experiment-uranium-processing-description
+  kind: Manufacture
+  requiredSamples: 5
+  distinctSamples: false
+  acceptedRecipes:
+  - FishProcessedUranium
+  rewardTechnology: FishBluespaceTheory

@@ -63,7 +63,7 @@ public sealed partial class ResearchSystem
 
     private void OnClientMapInit(EntityUid uid, ResearchClientComponent component, MapInitEvent args)
     {
-        if (GetServers(uid).FirstOrNull() is { } server)
+        if (component.FishAutoConnect && GetServers(uid).FirstOrNull() is { } server) // Fish-edit: переносной сканер требует явного выбора сервера.
             RegisterClient(uid, server, component, server);
     }
 
@@ -81,7 +81,7 @@ public sealed partial class ResearchSystem
     {
         if (args.Anchored)
         {
-            if (ent.Comp.Server is not null)
+            if (!ent.Comp.FishAutoConnect || ent.Comp.Server is not null) // Fish-edit: сохраняем ручной режим привязки при закреплении.
                 return;
 
             if (GetServers(ent).FirstOrNull() is { } server)

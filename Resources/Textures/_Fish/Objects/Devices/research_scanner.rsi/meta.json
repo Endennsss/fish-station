@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "license": "CC-BY-SA-3.0",
+  "copyright": "Experi-Scanner sprites by MrDoomBringer for /tg/station. Original contribution: https://github.com/tgstation/tgstation/pull/54093#issuecomment-735348288. Source revision: https://github.com/tgstation/tgstation/tree/9842b00724451382e5e558488f40d0e4b25afa02. Source states: experiscanner in icons/obj/devices/scanner.dmi and icons/mob/inhands/items/devices_lefthand.dmi, devices_righthand.dmi. Converted DMI states to RSI icon and inhand sheets for Fish; pixel art unchanged.",
+  "size": {
+    "x": 32,
+    "y": 32
+  },
+  "states": [
+    {
+      "name": "icon"
+    },
+    {
+      "name": "inhand-left",
+      "directions": 4
+    },
+    {
+      "name": "inhand-right",
+      "directions": 4
+    }
+  ]
+}

@@ -43,6 +43,13 @@ public sealed partial class ResearchSystem
             return;
         }
 
+        // Fish-start: объявление использует ту же цену, что и покупка на сервере.
+        var cost = technologyPrototype.Cost;
+        if (TryGetClientServer(uid, out var researchServer, out _) &&
+            TryComp<TechnologyDatabaseComponent>(researchServer, out var researchDatabase))
+            cost = GetTechnologyCost(researchDatabase, technologyPrototype);
+        // Fish-end
+
         if (!UnlockTechnology(uid, args.Id, act))
             return;
 
@@ -53,7 +60,7 @@ public sealed partial class ResearchSystem
             var message = Loc.GetString(
                 "research-console-unlock-technology-radio-broadcast",
                 ("technology", Loc.GetString(technologyPrototype.Name)),
-                ("amount", technologyPrototype.Cost),
+                ("amount", cost), // Fish-edit: показываем фактическое списание после скидки.
                 ("approver", _identity.GetIdentityShortInfo(act, uid) ?? string.Empty)
             );
             // _radio.SendRadioMessage(uid, message, component.AnnouncementChannel, uid, escapeMarkup: false);

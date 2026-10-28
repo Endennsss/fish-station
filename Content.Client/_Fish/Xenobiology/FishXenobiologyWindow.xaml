@@ -1,0 +1,38 @@
+<controls:FancyWindow xmlns="https://spacestation14.io"
+                      xmlns:controls="clr-namespace:Content.Client.UserInterface.Controls"
+                      Title="{Loc 'fish-xeno-title'}" MinSize="690 420" SetSize="980 650">
+    <BoxContainer Orientation="Vertical" SeparationOverride="8" Margin="10" HorizontalExpand="True" VerticalExpand="True">
+        <PanelContainer>
+            <BoxContainer Margin="10" SeparationOverride="12">
+                <BoxContainer Orientation="Vertical" HorizontalExpand="True">
+                    <Label Text="{Loc 'fish-xeno-title'}" StyleClasses="LabelHeading"/>
+                    <Label Name="Status" Access="Public"/>
+                </BoxContainer>
+                <Button Name="SpecimensButton" Text="{Loc 'fish-xeno-specimens'}" ToggleMode="True" Pressed="True"/>
+                <Button Name="CatalogButton" Text="{Loc 'fish-xeno-catalog'}" ToggleMode="True"/>
+            </BoxContainer>
+        </PanelContainer>
+        <BoxContainer Name="ProcessorControls" Access="Public" SeparationOverride="8" Visible="False">
+            <ProgressBar Name="Progress" Access="Public" MinValue="0" MaxValue="1" HorizontalExpand="True" MinHeight="28"/>
+            <Button Name="ProcessButton" Access="Public" Text="{Loc 'fish-xeno-process'}"/>
+            <Button Name="EjectButton" Access="Public" Text="{Loc 'fish-xeno-eject'}"/>
+        </BoxContainer>
+        <ScrollContainer Name="SpecimenScroll" HScrollEnabled="False" VerticalExpand="True" HorizontalExpand="True">
+            <BoxContainer Name="SpecimenList" Access="Public" Orientation="Vertical" SeparationOverride="8" HorizontalExpand="True"/>
+        </ScrollContainer>
+        <BoxContainer Name="CatalogContent" HorizontalExpand="True" VerticalExpand="True" Visible="False" SeparationOverride="10">
+            <BoxContainer Orientation="Vertical" MinWidth="210" SeparationOverride="6">
+                <LineEdit Name="Search" PlaceHolder="{Loc 'fish-xeno-search'}"/>
+                <ScrollContainer HScrollEnabled="False" VerticalExpand="True">
+                    <BoxContainer Name="BreedList" Orientation="Vertical" SeparationOverride="4" HorizontalExpand="True"/>
+                </ScrollContainer>
+            </BoxContainer>
+            <PanelContainer HorizontalExpand="True" VerticalExpand="True">
+                <ScrollContainer HScrollEnabled="False" HorizontalExpand="True" VerticalExpand="True">
+                    <BoxContainer Name="BreedDetails" Access="Public" Orientation="Vertical" HorizontalExpand="True" SeparationOverride="10" Margin="12"/>
+                </ScrollContainer>
+            </PanelContainer>
+        </BoxContainer>
+        <RichTextLabel Text="{Loc 'fish-xeno-guide'}" HorizontalExpand="True"/>
+    </BoxContainer>
+</controls:FancyWindow>
