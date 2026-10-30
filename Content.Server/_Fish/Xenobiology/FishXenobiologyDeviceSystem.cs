@@ -7,6 +7,7 @@ using Content.Shared.Interaction;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Mobs.Systems;
 using Content.Shared.Mind.Components;
+using Content.Shared.NameIdentifier;
 using Content.Shared.Nutrition.Components;
 using Content.Shared.Nutrition.EntitySystems;
 using Content.Shared.Popups;
@@ -37,6 +38,7 @@ public sealed partial class FishXenobiologyDeviceSystem : EntitySystem
     [Dependency] private IGameTiming _timing = default!;
     [Dependency] private EntityQuery<FishXenobiologySlimeComponent> _slimeQuery = default!;
     [Dependency] private EntityQuery<TemperatureComponent> _temperatureQuery = default!;
+    [Dependency] private EntityQuery<NameIdentifierComponent> _nameIdentifierQuery = default!;
     private TimeSpan _nextUpdate;
 
     public override void Initialize()
@@ -49,7 +51,10 @@ public sealed partial class FishXenobiologyDeviceSystem : EntitySystem
         SubscribeLocalEvent<FishXenobiologyCarrierComponent, ContainerIsInsertingAttemptEvent>(OnCarrierInsert);
         SubscribeLocalEvent<FishXenobiologyProcessorComponent, ComponentInit>(OnProcessorInit);
         SubscribeLocalEvent<FishXenobiologyProcessorComponent, ContainerIsInsertingAttemptEvent>(OnProcessorInsert);
+        SubscribeLocalEvent<FishXenobiologyProcessorComponent, EntInsertedIntoContainerMessage>(OnProcessorInserted);
+        SubscribeLocalEvent<FishXenobiologyProcessorComponent, EntRemovedFromContainerMessage>(OnProcessorRemoved);
         SubscribeLocalEvent<FishXenobiologyProcessorComponent, PowerChangedEvent>(OnPowerChanged);
+        SubscribeLocalEvent<FishXenobiologyConsoleComponent, PowerChangedEvent>(OnConsolePowerChanged);
         Subs.BuiEvents<FishXenobiologyProcessorComponent>(FishXenobiologyUiKey.Key, subs =>
         {
             subs.Event<BoundUIOpenedEvent>(OnProcessorOpened);
@@ -82,6 +87,21 @@ public sealed partial class FishXenobiologyDeviceSystem : EntitySystem
     {
         if (args.Container.ID == ent.Comp.Container && !IsHarvestable(args.EntityUid))
             args.Cancel();
+    }
+
+    private void OnProcessorInserted(Entity<FishXenobiologyProcessorComponent> ent, ref EntInsertedIntoContainerMessage args)
+    {
+        if (args.Container.ID == ent.Comp.Container)
+            UpdateProcessor(ent);
+    }
+
+    private void OnProcessorRemoved(Entity<FishXenobiologyProcessorComponent> ent, ref EntRemovedFromContainerMessage args)
+    {
+        if (args.Container.ID != ent.Comp.Container)
+            return;
+
+        RemCompDeferred<FishXenobiologyProcessingComponent>(ent);
+        UpdateProcessor(ent);
     }
 
     private void OnCarrierInteract(Entity<FishXenobiologyCarrierComponent> ent, ref AfterInteractEvent args)
@@ -160,7 +180,7 @@ public sealed partial class FishXenobiologyDeviceSystem : EntitySystem
         Entity<FishXenobiologyProcessorComponent> processor)
     {
         if (!CanUse(processor, user) || !_hands.IsHolding(user, carrier) ||
-            HasComp<FishXenobiologyProcessingComponent>(processor) ||
+            IsProcessing(processor) ||
             !_container.TryGetContainer(carrier, carrier.Comp.Container, out var source) ||
             source.ContainedEntities.Count == 0 ||
             !_container.TryGetContainer(processor, processor.Comp.Container, out var destination))
@@ -199,7 +219,7 @@ public sealed partial class FishXenobiologyDeviceSystem : EntitySystem
     /// <summary>Checks that a powered, idle processor contains an adult corpse which has not been harvested.</summary>
     public bool CanProcess(Entity<FishXenobiologyProcessorComponent> processor)
     {
-        return IsPowered(processor) && !HasComp<FishXenobiologyProcessingComponent>(processor) &&
+        return IsPowered(processor) && !IsProcessing(processor) &&
                GetInput(processor) is { } input && IsHarvestable(input);
     }
 
@@ -209,7 +229,7 @@ public sealed partial class FishXenobiologyDeviceSystem : EntitySystem
         if (!CanUse(processor, user) || !CanProcess(processor))
             return false;
 
-        var processing = AddComp<FishXenobiologyProcessingComponent>(processor);
+        var processing = EnsureComp<FishXenobiologyProcessingComponent>(processor);
         processing.StartedAt = _timing.CurTime;
         processing.FinishAt = _timing.CurTime + TimeSpan.FromSeconds(Math.Max(1f, processor.Comp.Duration));
         UpdateProcessor(processor);
@@ -218,12 +238,14 @@ public sealed partial class FishXenobiologyDeviceSystem : EntitySystem
 
     private void OnProcess(Entity<FishXenobiologyProcessorComponent> ent, ref FishXenobiologyProcessMessage args)
     {
-        TryProcess(ent, args.Actor);
+        if (!TryProcess(ent, args.Actor))
+            UpdateProcessor(ent);
     }
 
     private void OnEject(Entity<FishXenobiologyProcessorComponent> ent, ref FishXenobiologyEjectMessage args)
     {
-        TryEject(ent, args.Actor);
+        if (!TryEject(ent, args.Actor))
+            UpdateProcessor(ent);
     }
 
     /// <summary>Cancels processing and returns the corpse without spending its extraction yield.</summary>
@@ -246,6 +268,11 @@ public sealed partial class FishXenobiologyDeviceSystem : EntitySystem
         UpdateProcessor(ent);
     }
 
+    private void OnConsolePowerChanged(Entity<FishXenobiologyConsoleComponent> ent, ref PowerChangedEvent args)
+    {
+        UpdateConsole(ent);
+    }
+
     private void OnProcessorOpened(Entity<FishXenobiologyProcessorComponent> ent, ref BoundUIOpenedEvent args)
     {
         UpdateProcessor(ent);
@@ -266,9 +293,13 @@ public sealed partial class FishXenobiologyDeviceSystem : EntitySystem
         var processing = EntityQueryEnumerator<FishXenobiologyProcessingComponent, FishXenobiologyProcessorComponent>();
         while (processing.MoveNext(out var uid, out var active, out var processor))
         {
+            if (!active.Running)
+                continue;
+
             if (!IsPowered(uid) || GetInput((uid, processor)) is not { } input || !IsHarvestable(input))
             {
                 RemCompDeferred<FishXenobiologyProcessingComponent>(uid);
+                UpdateProcessor((uid, processor));
                 continue;
             }
 
@@ -276,13 +307,24 @@ public sealed partial class FishXenobiologyDeviceSystem : EntitySystem
                 continue;
 
             RemCompDeferred<FishXenobiologyProcessingComponent>(uid);
-            if (!_xenobiology.TryHarvest(input, out var breed, out var yield))
+            if (!_container.TryGetContainer(uid, processor.Container, out var contents) ||
+                !_container.Remove(input, contents, destination: Transform(uid).Coordinates))
+            {
+                UpdateProcessor((uid, processor));
                 continue;
+            }
+
+            if (!_xenobiology.TryHarvest(input, out var breed, out var yield))
+            {
+                UpdateProcessor((uid, processor));
+                continue;
+            }
 
             var extract = _prototype.Index(breed).Extract;
             for (var i = 0; i < yield; i++)
                 Spawn(extract, Transform(uid).Coordinates);
             QueueDel(input);
+            UpdateProcessor((uid, processor));
         }
 
         var processors = EntityQueryEnumerator<FishXenobiologyProcessorComponent>();
@@ -300,27 +342,50 @@ public sealed partial class FishXenobiologyDeviceSystem : EntitySystem
         }
     }
 
+    private bool IsProcessing(EntityUid processor)
+    {
+        return TryComp<FishXenobiologyProcessingComponent>(processor, out var processing) && processing.Running;
+    }
+
     private void UpdateProcessor(Entity<FishXenobiologyProcessorComponent> ent)
     {
         var input = GetInput(ent);
-        var state = new FishXenobiologyBoundUserInterfaceState
+        var harvestable = input is { } specimen && IsHarvestable(specimen);
+        var state = new FishXenobiologyProcessorBoundUserInterfaceState
         {
-            Processor = true,
             Powered = IsPowered(ent),
             CanProcess = CanProcess(ent),
             HasInput = input != null,
-            Progress = TryComp<FishXenobiologyProcessingComponent>(ent, out var processing)
-                ? Math.Clamp((float) ((_timing.CurTime - processing.StartedAt).TotalSeconds /
-                                        (processing.FinishAt - processing.StartedAt).TotalSeconds), 0f, 1f) : 0f,
+            CanEject = input != null,
+            Duration = Math.Max(1f, ent.Comp.Duration),
         };
-        if (state.Powered && input is { } uid && _slimeQuery.TryGetComponent(uid, out var slime))
-            state.Specimens.Add(Measure(uid, slime));
+        if (input is { } uid && _slimeQuery.TryGetComponent(uid, out var slime))
+        {
+            state.Input = Measure(uid, slime);
+            state.ExpectedYield = harvestable ? Math.Clamp(slime.ExtractYield, 1, 3) : 0;
+        }
+
+        if (state.Powered && harvestable &&
+            TryComp<FishXenobiologyProcessingComponent>(ent, out var processing) && processing.Running)
+        {
+            state.Processing = true;
+            state.Duration = Math.Max(1f, (float) (processing.FinishAt - processing.StartedAt).TotalSeconds);
+            state.SecondsRemaining = Math.Clamp((float) (processing.FinishAt - _timing.CurTime).TotalSeconds,
+                0f, state.Duration);
+            state.Progress = Math.Clamp(1f - state.SecondsRemaining / state.Duration, 0f, 1f);
+        }
+
+        state.Status = !state.Powered ? FishXenobiologyProcessorStatus.NoPower
+            : !state.HasInput ? FishXenobiologyProcessorStatus.Empty
+            : !harvestable ? FishXenobiologyProcessorStatus.InvalidInput
+            : state.Processing ? FishXenobiologyProcessorStatus.Processing
+            : FishXenobiologyProcessorStatus.Ready;
         _ui.SetUiState(ent.Owner, FishXenobiologyUiKey.Key, state);
     }
 
     private void UpdateConsole(Entity<FishXenobiologyConsoleComponent> ent)
     {
-        var state = new FishXenobiologyBoundUserInterfaceState { Powered = IsPowered(ent) };
+        var state = new FishXenobiologyBoundUserInterfaceState { Powered = IsPowered(ent), Range = ent.Comp.Range };
         if (state.Powered)
         {
             var origin = Transform(ent);
@@ -333,23 +398,34 @@ public sealed partial class FishXenobiologyDeviceSystem : EntitySystem
                     state.Specimens.Add(Measure(uid, slime));
             }
         }
+        state.Specimens.Sort(static (first, second) => first.Entity.Id.CompareTo(second.Entity.Id));
         _ui.SetUiState(ent.Owner, FishXenobiologyUiKey.Key, state);
     }
 
     private FishXenobiologySpecimen Measure(EntityUid uid, FishXenobiologySlimeComponent slime)
     {
         var breed = _prototype.Index(slime.Breed);
+        var metadata = MetaData(uid);
         return new FishXenobiologySpecimen
         {
+            Entity = GetNetEntity(uid, metadata),
+            Name = metadata.EntityName,
+            Identifier = _nameIdentifierQuery.TryGetComponent(uid, out var identifier) ? identifier.FullIdentifier : string.Empty,
             Breed = breed.ID,
             Adult = slime.Adult,
             Dead = _mobState.IsDead(uid),
+            Hostile = slime.Hostile,
+            Suspended = slime.Suspended || _container.IsEntityInContainer(uid),
             Generation = slime.Generation,
             Growth = Math.Clamp(slime.Growth / Math.Max(1f, breed.GrowthDuration), 0f, 1f),
             Biomass = slime.Biomass,
             Hunger = TryComp<SatiationComponent>(uid, out var satiation)
                 ? _satiation.GetValueOrNull((uid, satiation), SatiationSystem.Hunger) ?? 0f : 0f,
             Temperature = _temperatureQuery.TryGetComponent(uid, out var temperature) ? temperature.Temperature : 0f,
+            MinimumTemperature = breed.MinimumTemperature - slime.ThermalTolerance,
+            MaximumTemperature = breed.MaximumTemperature + slime.ThermalTolerance,
+            GrowthBiomass = breed.GrowthBiomass,
+            DivisionBiomass = breed.DivisionBiomass,
             MutationChance = slime.MutationChance,
             Offspring = slime.Offspring,
             ExtractYield = slime.ExtractYield,

@@ -13,8 +13,6 @@ public sealed class FishXenobiologyBoundUserInterface(EntityUid owner, Enum uiKe
     {
         base.Open();
         _window = this.CreateWindow<FishXenobiologyWindow>();
-        _window.ProcessRequested += () => SendMessage(new FishXenobiologyProcessMessage());
-        _window.EjectRequested += () => SendMessage(new FishXenobiologyEjectMessage());
     }
 
     protected override void UpdateState(BoundUserInterfaceState state)

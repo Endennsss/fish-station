@@ -156,19 +156,32 @@ public sealed class FishXenobiologyTest
                 server.System<PowerReceiverSystem>().SetNeedsPower(console, false);
                 var user = server.EntMan.SpawnEntity("MobHuman", new EntityCoordinates(map.Grid, 1.5f, 1.5f));
                 server.EntMan.SpawnEntity("FishXenoSlimeGrey", new EntityCoordinates(map.Grid, 2.25f, 1.5f));
+                server.EntMan.SpawnEntity("FishXenoSlimeGrey", new EntityCoordinates(map.Grid, 3.25f, 1.5f));
                 server.PlayerMan.SetAttachedEntity(pair.Player, user);
                 opened = server.System<UserInterfaceSystem>().TryOpenUi(console, FishXenobiologyUiKey.Key, user);
             });
             await pair.RunTicksSync(20);
             await pair.RunSeconds(1.2f);
-            await server.WaitAssertion(() => Assert.That(opened, Is.True));
+            await server.WaitAssertion(() =>
+            {
+                Assert.That(opened, Is.True);
+                Assert.That(server.System<UserInterfaceSystem>()
+                    .TryGetUiState<FishXenobiologyBoundUserInterfaceState>(console, FishXenobiologyUiKey.Key, out var snapshot), Is.True);
+                var state = snapshot!;
+                Assert.That(state.Specimens.Count, Is.EqualTo(2));
+                Assert.That(state.Specimens.Select(specimen => specimen.Entity).Distinct().Count(), Is.EqualTo(2));
+                Assert.That(state.Specimens.Select(specimen => specimen.Identifier), Is.All.Not.Empty);
+                Assert.That(state.Specimens.Select(specimen => specimen.Identifier).Distinct().Count(), Is.EqualTo(2),
+                    "Two individuals of the same breed must have distinct visible identifiers.");
+            });
             await pair.Client.WaitAssertion(() =>
             {
                 var root = pair.Client.ResolveDependency<IUserInterfaceManager>().WindowRoot;
                 var window = root.Children.OfType<FishXenobiologyWindow>().Single();
-                Assert.That(window.SpecimenList.ChildCount, Is.EqualTo(1));
-                Assert.That(window.BreedDetails.ChildCount, Is.GreaterThan(6));
-                Assert.That(window.ProcessorControls.Visible, Is.False);
+                Assert.That(window.SpecimenList.Children.Count(child => child.Visible), Is.EqualTo(2));
+                Assert.That(window.SelectedBreed, Is.Not.Null.And.Not.Empty);
+                Assert.That(window.BreedDetails.ChildCount, Is.GreaterThan(0));
+                Assert.That(root.Children.OfType<FishXenobiologyProcessorWindow>(), Is.Empty);
             });
             completed = true;
         }

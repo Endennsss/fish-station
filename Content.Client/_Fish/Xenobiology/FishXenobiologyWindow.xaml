@@ -1,38 +1,82 @@
 <controls:FancyWindow xmlns="https://spacestation14.io"
                       xmlns:controls="clr-namespace:Content.Client.UserInterface.Controls"
-                      Title="{Loc 'fish-xeno-title'}" MinSize="690 420" SetSize="980 650">
-    <BoxContainer Orientation="Vertical" SeparationOverride="8" Margin="10" HorizontalExpand="True" VerticalExpand="True">
-        <PanelContainer>
-            <BoxContainer Margin="10" SeparationOverride="12">
+                      Title="{Loc 'fish-xeno-title'}" MinSize="640 400" SetSize="1000 650">
+    <BoxContainer Orientation="Vertical" SeparationOverride="8" Margin="8" HorizontalExpand="True" VerticalExpand="True">
+        <PanelContainer Name="HeaderPanel">
+            <BoxContainer Margin="10 8" SeparationOverride="10">
                 <BoxContainer Orientation="Vertical" HorizontalExpand="True">
-                    <Label Text="{Loc 'fish-xeno-title'}" StyleClasses="LabelHeading"/>
-                    <Label Name="Status" Access="Public"/>
+                    <Label Text="{Loc 'fish-xeno-title'}" StyleClasses="LabelHeading" ClipText="True"/>
+                    <Label Name="Status" Access="Public" ClipText="True"/>
                 </BoxContainer>
                 <Button Name="SpecimensButton" Text="{Loc 'fish-xeno-specimens'}" ToggleMode="True" Pressed="True"/>
                 <Button Name="CatalogButton" Text="{Loc 'fish-xeno-catalog'}" ToggleMode="True"/>
             </BoxContainer>
         </PanelContainer>
-        <BoxContainer Name="ProcessorControls" Access="Public" SeparationOverride="8" Visible="False">
-            <ProgressBar Name="Progress" Access="Public" MinValue="0" MaxValue="1" HorizontalExpand="True" MinHeight="28"/>
-            <Button Name="ProcessButton" Access="Public" Text="{Loc 'fish-xeno-process'}"/>
-            <Button Name="EjectButton" Access="Public" Text="{Loc 'fish-xeno-eject'}"/>
-        </BoxContainer>
-        <ScrollContainer Name="SpecimenScroll" HScrollEnabled="False" VerticalExpand="True" HorizontalExpand="True">
-            <BoxContainer Name="SpecimenList" Access="Public" Orientation="Vertical" SeparationOverride="8" HorizontalExpand="True"/>
-        </ScrollContainer>
-        <BoxContainer Name="CatalogContent" HorizontalExpand="True" VerticalExpand="True" Visible="False" SeparationOverride="10">
-            <BoxContainer Orientation="Vertical" MinWidth="210" SeparationOverride="6">
-                <LineEdit Name="Search" PlaceHolder="{Loc 'fish-xeno-search'}"/>
-                <ScrollContainer HScrollEnabled="False" VerticalExpand="True">
-                    <BoxContainer Name="BreedList" Orientation="Vertical" SeparationOverride="4" HorizontalExpand="True"/>
-                </ScrollContainer>
-            </BoxContainer>
-            <PanelContainer HorizontalExpand="True" VerticalExpand="True">
-                <ScrollContainer HScrollEnabled="False" HorizontalExpand="True" VerticalExpand="True">
-                    <BoxContainer Name="BreedDetails" Access="Public" Orientation="Vertical" HorizontalExpand="True" SeparationOverride="10" Margin="12"/>
-                </ScrollContainer>
+        <BoxContainer Name="ColonyContent" Access="Public" HorizontalExpand="True" VerticalExpand="True" SeparationOverride="8">
+            <PanelContainer Name="ListPanel" SetWidth="290" VerticalExpand="True">
+                <BoxContainer Orientation="Vertical" Margin="8" SeparationOverride="6" HorizontalExpand="True" VerticalExpand="True">
+                    <LineEdit Name="SpecimenSearch" Access="Public" PlaceHolder="{Loc 'fish-xeno-specimen-search'}"/>
+                    <OptionButton Name="SpecimenFilter" Access="Public"/>
+                    <RichTextLabel Name="ColonyEmpty" Access="Public" Text="{Loc 'fish-xeno-no-specimens'}" HorizontalExpand="True"/>
+                    <ScrollContainer HScrollEnabled="False" HorizontalExpand="True" VerticalExpand="True" ReserveScrollbarSpace="True">
+                        <BoxContainer Name="SpecimenList" Access="Public" Orientation="Vertical" SeparationOverride="5" HorizontalExpand="True"/>
+                    </ScrollContainer>
+                </BoxContainer>
+            </PanelContainer>
+            <PanelContainer Name="SpecimenPanel" HorizontalExpand="True" VerticalExpand="True">
+                <BoxContainer Orientation="Vertical" Margin="10" SeparationOverride="8" HorizontalExpand="True" VerticalExpand="True">
+                    <Button Name="SpecimenBack" Text="{Loc 'fish-xeno-back-to-list'}" Visible="False"/>
+                    <Label Name="SelectHint" Text="{Loc 'fish-xeno-select-specimen'}"/>
+                    <ScrollContainer Name="SpecimenDetailsScroll" HScrollEnabled="False" HorizontalExpand="True" VerticalExpand="True" ReserveScrollbarSpace="True">
+                        <BoxContainer Name="SpecimenDetails" Access="Public" Orientation="Vertical" SeparationOverride="10" HorizontalExpand="True">
+                            <BoxContainer SeparationOverride="10">
+                                <EntityPrototypeView Name="Portrait" SetSize="72 72"/>
+                                <BoxContainer Orientation="Vertical" HorizontalExpand="True" SeparationOverride="3">
+                                    <Label Name="SelectedName" Access="Public" StyleClasses="LabelHeading" ClipText="True"/>
+                                    <Label Name="SelectedBreedLabel" ClipText="True"/>
+                                    <Label Name="SelectedStatus" ClipText="True"/>
+                                    <Button Name="OpenSelectedBreed" Text="{Loc 'fish-xeno-open-breed'}"/>
+                                </BoxContainer>
+                            </BoxContainer>
+                            <BoxContainer Name="Vitals" Orientation="Vertical" SeparationOverride="7" HorizontalExpand="True"/>
+                            <PanelContainer Name="TemperaturePanel">
+                                <BoxContainer Orientation="Vertical" Margin="8" SeparationOverride="4">
+                                    <Label Name="Temperature" StyleClasses="LabelHeading"/>
+                                    <Label Name="TemperatureRange"/>
+                                </BoxContainer>
+                            </PanelContainer>
+                            <Label Text="{Loc 'fish-xeno-genetics'}" StyleClasses="LabelHeading"/>
+                            <BoxContainer Name="Genetics" Orientation="Vertical" SeparationOverride="6" HorizontalExpand="True"/>
+                        </BoxContainer>
+                    </ScrollContainer>
+                </BoxContainer>
             </PanelContainer>
         </BoxContainer>
-        <RichTextLabel Text="{Loc 'fish-xeno-guide'}" HorizontalExpand="True"/>
+        <BoxContainer Name="CatalogContent" HorizontalExpand="True" VerticalExpand="True" Visible="False" SeparationOverride="8">
+            <PanelContainer Name="CatalogListPanel" SetWidth="290" VerticalExpand="True">
+                <BoxContainer Orientation="Vertical" Margin="8" SeparationOverride="6" HorizontalExpand="True" VerticalExpand="True">
+                    <LineEdit Name="CatalogSearch" Access="Public" PlaceHolder="{Loc 'fish-xeno-search'}"/>
+                    <RichTextLabel Name="CatalogEmpty" Access="Public" Text="{Loc 'fish-xeno-no-breeds'}" Visible="False" HorizontalExpand="True"/>
+                    <ScrollContainer HScrollEnabled="False" VerticalExpand="True" HorizontalExpand="True" ReserveScrollbarSpace="True">
+                        <BoxContainer Name="BreedList" Access="Public" Orientation="Vertical" SeparationOverride="4" HorizontalExpand="True"/>
+                    </ScrollContainer>
+                </BoxContainer>
+            </PanelContainer>
+            <PanelContainer Name="CatalogDetailsPanel" HorizontalExpand="True" VerticalExpand="True">
+                <BoxContainer Orientation="Vertical" Margin="10" SeparationOverride="6" HorizontalExpand="True" VerticalExpand="True">
+                    <Button Name="CatalogBack" Text="{Loc 'fish-xeno-back-to-list'}" Visible="False"/>
+                    <ScrollContainer Name="CatalogDetailsScroll" HScrollEnabled="False" HorizontalExpand="True" VerticalExpand="True" ReserveScrollbarSpace="True">
+                        <BoxContainer Name="BreedDetails" Access="Public" Orientation="Vertical" HorizontalExpand="True" SeparationOverride="10"/>
+                    </ScrollContainer>
+                </BoxContainer>
+            </PanelContainer>
+        </BoxContainer>
+        <ScrollContainer Name="HelpPanel" Visible="False" VerticalExpand="True" HorizontalExpand="True" HScrollEnabled="False" ReserveScrollbarSpace="True">
+            <RichTextLabel Text="{Loc 'fish-xeno-guide'}" HorizontalExpand="True"/>
+        </ScrollContainer>
+        <BoxContainer SeparationOverride="8">
+            <Label Name="Summary" HorizontalExpand="True" ClipText="True"/>
+            <Button Name="GuideButton" Text="{Loc 'fish-xeno-help'}" ToggleMode="True"/>
+        </BoxContainer>
     </BoxContainer>
 </controls:FancyWindow>
