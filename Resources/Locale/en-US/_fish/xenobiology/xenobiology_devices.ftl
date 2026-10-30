@@ -3,8 +3,8 @@ fish-xeno-specimens = Specimens
 fish-xeno-catalog = Breed catalog
 fish-xeno-count = Specimens in range: { $count }
 fish-xeno-unpowered = No power. Measurements unavailable.
-fish-xeno-process = Extract cores
-fish-xeno-eject = Eject specimen
+fish-xeno-process = Get extracts
+fish-xeno-eject = Return specimen
 fish-xeno-search = Search breeds...
 fish-xeno-captured = Specimen secured in the carrier.
 fish-xeno-baby = juvenile
@@ -65,6 +65,9 @@ fish-xeno-no-specimens = No specimens in scanning range.
 fish-xeno-no-matching-specimens = No specimens match your search.
 fish-xeno-no-breeds = No breeds match your search.
 fish-xeno-select-specimen = Select a specimen to inspect its condition.
+fish-xeno-colony-start-hint = Hatch a slime from a starter culture and keep it near the console. Its condition and inherited traits will appear here. Growth conditions and extract reactions are available in the breed catalog.
+fish-xeno-search-hint = Change the search or select "All specimens" to restore hidden specimens to the list.
+fish-xeno-offline-hint = Restore power to measure the colony's condition. The breed catalog remains available without power.
 fish-xeno-back-to-list = Back to list
 fish-xeno-open-breed = Breed reference
 fish-xeno-selected-breed = { $breed } · Generation { $generation }
@@ -93,7 +96,16 @@ fish-xeno-colony-summary = Showing { $visible } / { $total } · Needs attention:
 fish-xeno-catalog-count = Breeds: { $count }
 fish-xeno-help = Quick guide
 fish-xeno-tier = Mutation tier { $tier }
+fish-xeno-tier-all = All mutation tiers
+fish-xeno-catalog-care = Care and mutations
+fish-xeno-catalog-recipes = Extract recipes
 fish-xeno-care = Growth conditions
+fish-xeno-care-duration = Time to adulthood
+fish-xeno-care-growth-biomass = Biomass for adulthood
+fish-xeno-care-division-biomass = Biomass for division
+fish-xeno-care-temperature = Body temperature
+fish-xeno-care-temperature-value = { $minimum } to { $maximum } °C
+fish-xeno-seconds = { $seconds } s
 fish-xeno-care-thresholds = Growth requires at least 25% satiety. Division requires at least 50%. Containers pause growth. Inherited traits change growth speed and comfortable temperatures.
 fish-xeno-mutation-heading = Mutation paths
 fish-xeno-mutation-explanation = Shares below apply only when an offspring mutates. The parent's inherited mutation chance determines how often that happens.
@@ -111,7 +123,18 @@ fish-xeno-processor-invalid = Requires an unprocessed adult corpse
 fish-xeno-processor-idle = Waiting for a specimen
 fish-xeno-input-empty = Input chamber empty
 fish-xeno-input-unknown = Unidentified specimen
-fish-xeno-processor-instructions = Use a slime carrier on a dead adult, then use the loaded carrier on this processor. Extraction consumes the corpse. Ejecting cancels the current job.
-fish-xeno-expected-yield = Expected output: { $count } extracts
+fish-xeno-processor-instructions =
+    1. Capture a dead adult slime with a carrier.
+    2. Use the loaded carrier on this processor.
+    3. Press "Get extracts".
+fish-xeno-processor-consume-hint = Processing takes { $seconds } s and consumes the corpse. You can return the specimen before it finishes.
+fish-xeno-processor-cancel-hint = "Cancel and return" stops processing and returns the specimen without consuming the corpse.
+fish-xeno-processor-power-hint = Processing requires power. You can return the specimen now.
+fish-xeno-processor-invalid-hint = Return the specimen and use a carrier to load an unprocessed adult corpse.
+fish-xeno-cancel-eject = Cancel and return
+fish-xeno-expected-yield = Expected output: { $count ->
+    [one] { $count } extract
+   *[other] { $count } extracts
+    }
 fish-xeno-time-remaining = Remaining: { $seconds } s
 fish-xeno-processor-finishing = Finishing extraction...

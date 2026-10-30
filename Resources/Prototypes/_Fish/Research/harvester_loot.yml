@@ -4,7 +4,7 @@
   category: Materials
   weight: 3
   products:
-    SheetSteel1: 10
+    SheetSteel1: 30
 
 - type: fishBluespaceHarvesterLoot
   id: FishHarvesterGlass
@@ -12,46 +12,46 @@
   category: Materials
   weight: 2
   products:
-    SheetGlass1: 10
+    SheetGlass1: 30
 
 - type: fishBluespaceHarvesterLoot
   id: FishHarvesterMetals
   suffix: Fish
   category: Materials
   products:
-    SheetPlasteel1: 3
-    IngotGold1: 2
-    IngotSilver1: 2
+    SheetPlasteel1: 8
+    IngotGold1: 4
+    IngotSilver1: 4
 
 - type: fishBluespaceHarvesterLoot
   id: FishHarvesterMedicalSupplies
   suffix: Fish
   category: Supplies
   products:
-    Gauze1: 5
-    Ointment1: 5
-    EmergencyMedipen: 1
+    Gauze1: 10
+    Ointment1: 10
+    EmergencyMedipen: 2
 
 - type: fishBluespaceHarvesterLoot
   id: FishHarvesterFoodSupplies
   suffix: Fish
   category: Supplies
   products:
-    FoodSnackNutribrick: 5
+    FoodSnackNutribrick: 8
 
 - type: fishBluespaceHarvesterLoot
   id: FishHarvesterLaboratorySupplies
   suffix: Fish
   category: Research
   products:
-    MicroManipulatorStockPart: 3
+    MicroManipulatorStockPart: 8
     Beaker: 2
-    Syringe: 1
+    Syringe: 2
 
 - type: fishBluespaceHarvesterLoot
   id: FishHarvesterPowerSupplies
   suffix: Fish
   category: Research
   products:
-    PowerCellHigh: 1
-    CableHVStack10: 1
+    PowerCellHigh: 2
+    CableHVStack1: 30

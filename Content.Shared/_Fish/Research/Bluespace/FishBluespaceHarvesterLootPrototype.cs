@@ -22,7 +22,7 @@ public sealed partial class FishBluespaceHarvesterLootPrototype : IPrototype
     [DataField]
     public float Weight = 1f;
 
-    /// <summary>Entity prototype and spawn count; a valid batch contains at most sixteen entities.</summary>
+    /// <summary>Entity prototype and unit quantity, split into native stacks; batches allow at most 300 units and sixteen entities.</summary>
     [DataField(required: true)]
     public Dictionary<EntProtoId, int> Products = new();
 }

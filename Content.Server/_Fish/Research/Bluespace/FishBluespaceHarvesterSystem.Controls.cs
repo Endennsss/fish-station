@@ -129,7 +129,8 @@ public sealed partial class FishBluespaceHarvesterSystem
             0f,
             ent.Comp.PowerMode,
             ent.Comp.LootCategory,
-            ent.Comp.OutputBlocked);
+            ent.Comp.OutputBlocked,
+            energyPerReward: ent.Comp.EnergyPerReward);
         _ui.SetUiState(ent.Owner, FishBluespaceDeviceUiKey.Key, state);
     }
 }

@@ -13,19 +13,19 @@ public sealed partial class FishBluespaceHarvesterComponent : Component
 
     /// <summary>Requested power in normal mode, in watts.</summary>
     [DataField]
-    public float NormalPowerDraw = 1_000_000f;
+    public float NormalPowerDraw = 250_000f;
 
     /// <summary>Requested power in overdrive mode, in watts.</summary>
     [DataField]
-    public float OverdrivePowerDraw = 2_000_000f;
+    public float OverdrivePowerDraw = 500_000f;
 
     /// <summary>Real received energy required for one reward, in joules.</summary>
     [DataField]
-    public float EnergyPerReward = 60_000_000f;
+    public float EnergyPerReward = 15_000_000f;
 
     /// <summary>Station background added per megajoule of actual consumption.</summary>
     [DataField]
-    public float BackgroundPerMegajoule = 0.15f;
+    public float BackgroundPerMegajoule = 0.6f;
 
     /// <summary>Additional background multiplier while using overdrive.</summary>
     [DataField]

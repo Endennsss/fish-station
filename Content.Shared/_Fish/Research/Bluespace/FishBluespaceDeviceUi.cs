@@ -62,7 +62,8 @@ public sealed class FishBluespaceDeviceBoundUserInterfaceState(
     float pointsPerMinute,
     FishBluespacePowerMode powerMode,
     FishBluespaceLootCategory lootCategory,
-    bool outputBlocked = false) : BoundUserInterfaceState
+    bool outputBlocked = false,
+    float energyPerReward = 0f) : BoundUserInterfaceState
 {
     public readonly FishBluespaceDeviceKind Kind = kind;
     public readonly bool Enabled = enabled;
@@ -79,6 +80,7 @@ public sealed class FishBluespaceDeviceBoundUserInterfaceState(
     public readonly FishBluespacePowerMode PowerMode = powerMode;
     public readonly FishBluespaceLootCategory LootCategory = lootCategory;
     public readonly bool OutputBlocked = outputBlocked;
+    public readonly float EnergyPerReward = energyPerReward;
 }
 
 /// <summary>Requests an explicit operating state; all machine conditions are checked on the server.</summary>

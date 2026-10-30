@@ -111,7 +111,7 @@
   - type: PowerState
     ensureApc: false
     idlePowerDraw: 0
-    workingPowerDraw: 1000000
+    workingPowerDraw: 250000
     isWorking: false
   - type: Machine
     board: FishBluespaceHarvesterBoard
@@ -128,7 +128,10 @@
           False: { visible: false }
   - type: FishBluespaceHarvester
     enabled: false
-    backgroundPerMegajoule: 0.15
+    normalPowerDraw: 250000
+    overdrivePowerDraw: 500000
+    energyPerReward: 15000000
+    backgroundPerMegajoule: 0.6
   - type: ActivatableUI
     key: enum.FishBluespaceDeviceUiKey.Key
   - type: UserInterface

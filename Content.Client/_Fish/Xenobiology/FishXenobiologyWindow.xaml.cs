@@ -37,6 +37,7 @@ public sealed partial class FishXenobiologyWindow : FancyWindow
     private bool _initialized;
     private bool _powered;
     private int _filter;
+    private int _catalogTier = -1;
 
     /// <summary>The selected specimen identity, retained across refreshes and row reordering.</summary>
     public NetEntity? SelectedSpecimen => _selectedSpecimen;
@@ -73,6 +74,17 @@ public sealed partial class FishXenobiologyWindow : FancyWindow
         };
         SpecimenSearch.OnTextChanged += _ => ApplySpecimenFilter();
         CatalogSearch.OnTextChanged += _ => ApplyCatalogFilter();
+        CatalogTierFilter.AddItem(_loc.GetString("fish-xeno-tier-all"), -1);
+        foreach (var tier in _breeds.Select(breed => breed.Tier).Distinct())
+            CatalogTierFilter.AddItem(_loc.GetString("fish-xeno-tier", ("tier", tier)), tier);
+        CatalogTierFilter.OnItemSelected += args =>
+        {
+            _catalogTier = args.Id;
+            CatalogTierFilter.SelectId(args.Id);
+            ApplyCatalogFilter();
+        };
+        CatalogCareButton.OnPressed += _ => ShowCatalogRecipes(false);
+        CatalogRecipesButton.OnPressed += _ => ShowCatalogRecipes(true);
         SpecimensButton.OnPressed += _ => ShowCatalog(false);
         CatalogButton.OnPressed += _ => ShowCatalog(true);
         SpecimenBack.OnPressed += _ => { _showColonyDetails = false; UpdateAdaptiveLayout(); };
@@ -185,6 +197,7 @@ public sealed partial class FishXenobiologyWindow : FancyWindow
             _rows[id].SetPositionInParent(position++);
         Status.Text = _loc.GetString(state.Powered ? "fish-xeno-live-count" : "fish-xeno-unpowered",
             ("count", _specimens.Count), ("range", FishXenobiologyPresentation.Number(state.Range)));
+        Status.ToolTip = Status.Text;
         Status.FontColorOverride = state.Powered ? Palettes.Green.Text : Palettes.Amber.Text;
         ApplySpecimenFilter();
     }
@@ -244,6 +257,8 @@ public sealed partial class FishXenobiologyWindow : FancyWindow
         SpecimenDetails.Visible = present;
         if (!present || _selectedSpecimen is not { } id)
         {
+            SelectHint.SetMessage(_loc.GetString(!_powered ? "fish-xeno-offline-hint" :
+                _specimens.Count == 0 ? "fish-xeno-colony-start-hint" : "fish-xeno-search-hint"));
             Portrait.SetPrototype(null);
             return;
         }
@@ -252,7 +267,9 @@ public sealed partial class FishXenobiologyWindow : FancyWindow
         SelectedName.Text = FishXenobiologyPresentation.Name(specimen, _loc.GetString(breed.Name), _loc);
         SelectedName.ToolTip = SelectedName.Text;
         SelectedBreedLabel.Text = _loc.GetString("fish-xeno-selected-breed", ("breed", _loc.GetString(breed.Name)), ("generation", specimen.Generation));
+        SelectedBreedLabel.ToolTip = SelectedBreedLabel.Text;
         SelectedStatus.Text = FishXenobiologyPresentation.Status(specimen, _loc);
+        SelectedStatus.ToolTip = SelectedStatus.Text;
         SelectedStatus.FontColorOverride = FishXenobiologyPresentation.StatusColor(specimen);
         FishXenobiologyPresentation.SetPortrait(Portrait, _entity, breed, specimen);
         SetMeter("growth", specimen.Adult ? 1 : specimen.Growth,
@@ -268,6 +285,8 @@ public sealed partial class FishXenobiologyWindow : FancyWindow
             ? Palettes.Amber.Text : Palettes.Green.Text;
         TemperatureRange.Text = _loc.GetString("fish-xeno-temperature-range", ("minimum", FishXenobiologyPresentation.Number(specimen.MinimumTemperature - 273.15f)),
             ("maximum", FishXenobiologyPresentation.Number(specimen.MaximumTemperature - 273.15f)));
+        Temperature.ToolTip = Temperature.Text;
+        TemperatureRange.ToolTip = TemperatureRange.Text;
         SetGene("mutation", _loc.GetString("fish-xeno-percent", ("amount", MathF.Round(specimen.MutationChance * 100))));
         SetGene("offspring", specimen.Offspring.ToString());
         SetGene("yield", specimen.ExtractYield.ToString());
@@ -281,11 +300,12 @@ public sealed partial class FishXenobiologyWindow : FancyWindow
         Summary.Text = _catalogVisible ? _loc.GetString("fish-xeno-catalog-count", ("count", _breedButtons.Count(pair => pair.Value.Visible))) :
             _loc.GetString("fish-xeno-colony-summary", ("visible", _visibleSpecimens.Count), ("total", _specimens.Count),
                 ("attention", _specimens.Values.Count(FishXenobiologyPresentation.NeedsAttention)));
+        Summary.ToolTip = Summary.Text;
     }
 
     private void AddMeter(string key)
     {
-        var label = new Label();
+        var label = new Label { ClipText = true };
         var bar = new ProgressBar { MinValue = 0, MaxValue = 1, MinHeight = 10, HorizontalExpand = true };
         Vitals.AddChild(label);
         Vitals.AddChild(bar);
@@ -296,6 +316,7 @@ public sealed partial class FishXenobiologyWindow : FancyWindow
     {
         var meter = _meters[key];
         meter.Label.Text = text;
+        meter.Label.ToolTip = text;
         meter.Bar.Value = FishXenobiologyPresentation.Unit(value);
         meter.Bar.ForegroundStyleBoxOverride = FishXenobiologyPresentation.Panel(color);
     }
@@ -303,7 +324,8 @@ public sealed partial class FishXenobiologyWindow : FancyWindow
     private void AddGene(string key)
     {
         var row = new BoxContainer { SeparationOverride = 8, HorizontalExpand = true };
-        row.AddChild(new Label { Text = _loc.GetString("fish-xeno-gene-" + key), HorizontalExpand = true, StyleClasses = { StyleClass.LabelSubText } });
+        var caption = _loc.GetString("fish-xeno-gene-" + key);
+        row.AddChild(new Label { Text = caption, ToolTip = caption, ClipText = true, HorizontalExpand = true, StyleClasses = { StyleClass.LabelSubText } });
         var amount = new Label();
         row.AddChild(amount);
         Genetics.AddChild(row);

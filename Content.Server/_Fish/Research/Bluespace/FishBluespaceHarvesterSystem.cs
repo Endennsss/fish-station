@@ -1,5 +1,6 @@
 using Content.Server.Power.Components;
 using Content.Server.Power.EntitySystems;
+using Content.Server.Stack;
 using Content.Shared._Fish.Research.Bluespace;
 using Content.Shared.ActionBlocker;
 using Content.Shared.Administration.Logs;
@@ -20,6 +21,7 @@ public sealed partial class FishBluespaceHarvesterSystem : EntitySystem
 {
     [Dependency] private FishBluespaceBackgroundSystem _bluespaceBackground = default!;
     [Dependency] private PowerStateSystem _powerState = default!;
+    [Dependency] private StackSystem _stack = default!;
     [Dependency] private SharedContainerSystem _container = default!;
     [Dependency] private SharedTransformSystem _transform = default!;
     [Dependency] private SharedMapSystem _map = default!;
@@ -39,6 +41,7 @@ public sealed partial class FishBluespaceHarvesterSystem : EntitySystem
     [Dependency] private EntityQuery<MapGridComponent> _gridQuery = default!;
 
     private const int MaximumBatchSize = 16;
+    private const int MaximumBatchUnits = 300;
     private static readonly TimeSpan CheckInterval = TimeSpan.FromSeconds(1);
     private static readonly Vector2i[] OutputOffsets =
     [

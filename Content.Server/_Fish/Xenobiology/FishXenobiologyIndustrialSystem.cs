@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Content.Server.NPC.HTN;
+using Content.Server.Stack;
 using Content.Shared._Fish.Xenobiology;
 using Content.Shared.ActionBlocker;
 using Content.Shared.Chemistry.Components;
@@ -34,6 +35,7 @@ public sealed partial class FishXenobiologyIndustrialSystem : EntitySystem
     [Dependency] private SharedPopupSystem _popup = default!;
     [Dependency] private MobStateSystem _mobState = default!;
     [Dependency] private TurfSystem _turf = default!;
+    [Dependency] private StackSystem _stack = default!;
     [Dependency] private EntityQuery<FishXenobiologyIndustrialComponent> _industrialQuery = default!;
     [Dependency] private EntityQuery<FishXenobiologyIndustrialActiveComponent> _activeQuery = default!;
 
@@ -238,8 +240,21 @@ public sealed partial class FishXenobiologyIndustrialSystem : EntitySystem
 
             foreach (var (product, count) in recipe.Products)
             {
-                for (var i = 0; i < count; i++)
-                    Spawn(product, coordinates);
+                var remaining = count;
+                while (remaining > 0)
+                {
+                    if (TerminatingOrDeleted(extract) || IsPaused(extract) || !TryGetFloor(extract, out coordinates))
+                        return false;
+
+                    var maxCount = _stack.GetMaxCount(product);
+                    if (maxCount <= 0)
+                        return false;
+
+                    // Fish-edit: Products описывает единицы материала, а не отдельные одноштучные предметы.
+                    var units = Math.Min(remaining, maxCount);
+                    remaining -= units;
+                    _stack.SpawnMultipleAtPosition(product, units, coordinates);
+                }
             }
         }
         finally
@@ -305,16 +320,17 @@ public sealed partial class FishXenobiologyIndustrialSystem : EntitySystem
         return recipe != null;
     }
 
-    private static bool IsValidRecipe(FishXenobiologyIndustrialRecipePrototype recipe)
+    private bool IsValidRecipe(FishXenobiologyIndustrialRecipePrototype recipe)
     {
         if (recipe.RequiredExtracts is < 1 or > 100 || recipe.PlasmaCost <= FixedPoint2.Zero ||
             recipe.Interval < TimeSpan.FromSeconds(1) || recipe.Interval > TimeSpan.FromDays(1) || recipe.Products.Count == 0)
             return false;
 
         var total = 0;
-        foreach (var count in recipe.Products.Values)
+        foreach (var (product, count) in recipe.Products)
         {
-            if (count is < 1 or > MaximumBatchItems || (total += count) > MaximumBatchItems)
+            if (count is < 1 or > MaximumBatchItems || (total += count) > MaximumBatchItems ||
+                !_prototype.TryIndex(product, out var prototype) || prototype.Abstract || _stack.GetMaxCount(prototype) <= 0)
                 return false;
         }
         return true;

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "license": "CC-BY-SA-3.0",
-  "copyright": "Taken from Paradise at https://github.com/ParadiseSS13/Paradise/blob/bd91a1b962fe9bd38e346e9fafd4ebb10784fcb3/icons/mob/slimes.dmi. Imported without pixel changes from Goob Station commit 7e962071658b3f59a14b54fefb3b376edee7bb3c, Resources/Textures/_Goobstation/Xenobiology/Mobs/slimesBaby.rsi.",
+  "copyright": "Grey slime sprites by MTandi, /tg/station PR https://github.com/tgstation/tgstation/pull/83891. Source: https://github.com/tgstation/tgstation/blob/bf6f771a1e221e06938978e36bbaf78543f85ebe/icons/mob/simple/slimes.dmi. Fish DMI-to-RSI conversion: base = grey-baby, dead = grey-baby-dead; original 32x32 RGBA pixels and colors preserved, one direction, four base frames repacked in original order. DMI decisecond delays 10,2,4,2 converted to RSI seconds 1.0,0.2,0.4,0.2; dead state is static. Source license notice: https://github.com/tgstation/tgstation/blob/bf6f771a1e221e06938978e36bbaf78543f85ebe/README.md#license. License: https://creativecommons.org/licenses/by-sa/3.0/.",
   "size": {
     "x": 32,
     "y": 32
@@ -11,13 +11,10 @@
       "name": "base",
       "delays": [
         [
-          0.15,
-          0.15,
-          0.15,
-          0.15,
-          0.15,
-          0.15,
-          0.15
+          1.0,
+          0.2,
+          0.4,
+          0.2
         ]
       ]
     },

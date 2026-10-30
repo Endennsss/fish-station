@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Content.Server._Fish.Xenobiology;
 using Content.Server.Lathe;
 using Content.Server.NPC.HTN;
@@ -13,6 +14,7 @@ using Content.Shared.Mobs.Systems;
 using Content.Shared.Nutrition.Components;
 using Content.Shared.Nutrition.EntitySystems;
 using Content.Shared.Research.Prototypes;
+using Content.Shared.Stacks;
 using Content.Shared.Temperature.Components;
 using Content.Shared.Temperature.Systems;
 using Robust.Shared.Containers;
@@ -370,6 +372,59 @@ public sealed class FishXenobiologyIndustrialTest
                 solutions.TryGetSolution(extract, "extract", out _, out var mixture);
                 Assert.That(mixture.GetTotalPrototypeQuantity("Plasma"), Is.EqualTo(FixedPoint2.New(10)));
             });
+        });
+    }
+
+    /// <summary>A multi-unit industrial recipe emits one native stack per material and charges fuel only once.</summary>
+    [Test]
+    public async Task IndustrialProductsUseUnitCountsAndNativeStacks()
+    {
+        await FishXenobiologyTestLab.WithLab(async lab =>
+        {
+            var server = lab.Pair.Server;
+            var recipe = server.ProtoMan.Index((ProtoId<FishXenobiologyIndustrialRecipePrototype>) "FishXenoIndustrialMetal");
+            var originalProducts = recipe.Products;
+            var produced = false;
+            var repeated = true;
+            EntityUid extract = default;
+            try
+            {
+                await server.WaitPost(() =>
+                {
+                    recipe.Products = new Dictionary<EntProtoId, int> { ["SheetSteel1"] = 4, ["SheetGlass1"] = 3 };
+                    extract = server.EntMan.SpawnEntity("FishXenoIndustrialExtractMetal", lab.Coordinates);
+                    var solutions = server.System<SharedSolutionContainerSystem>();
+                    if (solutions.TryGetSolution(extract, "extract", out var solution, out _))
+                        solutions.TryAddReagent(solution.Value, "Plasma", FixedPoint2.New(10));
+                    server.EntMan.GetComponent<FishXenobiologyIndustrialActiveComponent>(extract).NextProduction = server.Timing.CurTime;
+                    produced = server.System<FishXenobiologyIndustrialSystem>().TryProduce(extract);
+                    repeated = server.System<FishXenobiologyIndustrialSystem>().TryProduce(extract);
+                });
+                await server.WaitAssertion(() =>
+                {
+                    Assert.That(produced, Is.True);
+                    Assert.That(repeated, Is.False);
+                    Assert.That(lab.CountPrototype("SheetSteel1"), Is.EqualTo(1));
+                    Assert.That(lab.CountPrototype("SheetGlass1"), Is.EqualTo(1));
+                    var quantities = server.EntMan.EntityQueryEnumerator<StackComponent, MetaDataComponent, TransformComponent>();
+                    var totals = new Dictionary<string, int>();
+                    while (quantities.MoveNext(out _, out var stack, out var meta, out var transform))
+                    {
+                        if (transform.MapUid != lab.Map || meta.EntityPrototype?.ID is not { } id ||
+                            id is not ("SheetSteel1" or "SheetGlass1"))
+                            continue;
+                        totals[id] = totals.GetValueOrDefault(id) + stack.Count;
+                    }
+                    Assert.That(totals.GetValueOrDefault("SheetSteel1"), Is.EqualTo(4));
+                    Assert.That(totals.GetValueOrDefault("SheetGlass1"), Is.EqualTo(3));
+                    server.System<SharedSolutionContainerSystem>().TryGetSolution(extract, "extract", out _, out var mixture);
+                    Assert.That(mixture.GetTotalPrototypeQuantity("Plasma"), Is.EqualTo(FixedPoint2.New(5)));
+                });
+            }
+            finally
+            {
+                await server.WaitPost(() => recipe.Products = originalProducts);
+            }
         });
     }
 

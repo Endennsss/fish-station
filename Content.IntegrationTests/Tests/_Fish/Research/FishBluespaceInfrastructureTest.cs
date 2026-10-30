@@ -1,17 +1,21 @@
+using System.Collections.Generic;
 using System.Linq;
 using Content.IntegrationTests.Pair;
 using Content.Server._Fish.Research.Bluespace;
 using Content.Server.Power.Components;
 using Content.Server.Power.EntitySystems;
 using Content.Server.Station.Systems;
+using Content.Server.Stack;
 using Content.Shared._Fish.Research.Bluespace;
 using Content.Shared.Power.Components;
 using Content.Shared.Research.Components;
 using Content.Shared.Station.Components;
+using Content.Shared.Stacks;
 using Robust.Shared.Containers;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
+using Robust.Shared.Prototypes;
 using ServerResearchSystem = Content.Server.Research.Systems.ResearchSystem;
 
 namespace Content.IntegrationTests.Tests._Fish.Research;
@@ -245,10 +249,10 @@ public sealed class FishBluespaceInfrastructureTest
             var switched = false;
             await server.WaitPost(() =>
             {
-                consumer.NetworkLoad.ReceivingPower = 250_000f;
+                consumer.NetworkLoad.ReceivingPower = 125_000f;
                 system.Update(1f);
             });
-            await server.WaitAssertion(() => Assert.That(harvester.Comp.StoredEnergy, Is.EqualTo(250_000d).Within(1d)));
+            await server.WaitAssertion(() => Assert.That(harvester.Comp.StoredEnergy, Is.EqualTo(125_000d).Within(1d)));
             await server.WaitPost(() =>
             {
                 consumer.NetworkLoad.ReceivingPower = 3_000_000f;
@@ -259,7 +263,7 @@ public sealed class FishBluespaceInfrastructureTest
             await server.WaitAssertion(() =>
             {
                 Assert.That(switched, Is.True);
-                Assert.That(harvester.Comp.StoredEnergy, Is.EqualTo(1_250_000d).Within(1d),
+                Assert.That(harvester.Comp.StoredEnergy, Is.EqualTo(375_000d).Within(1d),
                     "Changing demand must discard a stale sample from the previous power mode.");
             });
             await server.WaitPost(() =>
@@ -269,9 +273,11 @@ public sealed class FishBluespaceInfrastructureTest
             });
             await server.WaitAssertion(() =>
             {
-                Assert.That(harvester.Comp.StoredEnergy, Is.EqualTo(3_250_000d).Within(1d),
-                    "Overdrive caps received power at two megawatts and a delayed frame at one second.");
-                Assert.That(server.System<FishBluespaceBackgroundSystem>().GetLevel(harvester), Is.GreaterThan(0f));
+                Assert.That(harvester.Comp.StoredEnergy, Is.EqualTo(875_000d).Within(1d),
+                    "Overdrive caps received power at five hundred kilowatts and a delayed frame at one second.");
+                Assert.That(consumer.DrawRate, Is.EqualTo(500_000f));
+                Assert.That(server.System<FishBluespaceBackgroundSystem>().GetLevel(harvester), Is.EqualTo(0.825f).Within(0.001f),
+                    "Lower power must preserve the previous background generation per minute.");
                 Assert.That(server.System<FishBluespaceBackgroundSystem>().GetLevel(context.SecondGrid), Is.Zero);
             });
         });
@@ -298,7 +304,7 @@ public sealed class FishBluespaceInfrastructureTest
             {
                 Assert.That(produced, Is.False);
                 Assert.That(harvester.Comp.OutputBlocked, Is.True);
-                Assert.That(harvester.Comp.StoredEnergy, Is.EqualTo(60_000_000d));
+                Assert.That(harvester.Comp.StoredEnergy, Is.EqualTo(15_000_000d));
                 Assert.That(RewardItems(context), Is.Zero);
             });
             var repeated = true;
@@ -315,7 +321,75 @@ public sealed class FishBluespaceInfrastructureTest
                 Assert.That(harvester.Comp.StoredEnergy, Is.Zero);
                 Assert.That(harvester.Comp.OutputBlocked, Is.False);
                 Assert.That(RewardItems(context), Is.InRange(1, 16));
+                Assert.That(RewardUnits(context), Is.InRange(16, 30));
+                Assert.That(GetRewardEntities(context).All(uid => !server.EntMan.TryGetComponent<StackComponent>(uid, out var stack) ||
+                    stack.Count <= server.System<StackSystem>().GetMaxCount(stack)), Is.True);
             });
+        });
+    }
+
+    /// <summary>Configured quantities describe units, split at native stack limits and reject excessive physical or unit totals.</summary>
+    [TestCase("SheetSteel1", 61, 3, true, false)]
+    [TestCase("SheetSteel1", 300, 10, true, false)]
+    [TestCase("SheetSteel1", 301, 0, false, false)]
+    [TestCase("SheetSteel1", 301, 0, false, true)]
+    [TestCase("Beaker", 16, 16, true, false)]
+    [TestCase("Beaker", 17, 0, false, false)]
+    [TestCase("SheetSteel1", 0, 0, false, false)]
+    public async Task HarvesterSplitsUnitsAndEnforcesIndependentOutputCaps(string product, int units, int entities,
+        bool accepted, bool mixedMaterials)
+    {
+        await WithStations(async context =>
+        {
+            var server = context.Pair.Server;
+            var harvester = await SpawnHarvester(context);
+            var system = server.System<FishBluespaceHarvesterSystem>();
+            var originals = new Dictionary<FishBluespaceHarvesterLootPrototype, Dictionary<EntProtoId, int>>();
+            var produced = false;
+            var repeated = true;
+            try
+            {
+                await server.WaitPost(() =>
+                {
+                    // Fish-edit: все варианты одной категории получают одинаковую тестовую партию, исключая влияние RNG.
+                    foreach (var reward in server.ProtoMan.EnumeratePrototypes<FishBluespaceHarvesterLootPrototype>())
+                    {
+                        if (reward.Category != FishBluespaceLootCategory.Materials)
+                            continue;
+                        originals.Add(reward, reward.Products);
+                        reward.Products = mixedMaterials
+                            ? new Dictionary<EntProtoId, int> { ["SheetSteel1"] = 150, ["SheetGlass1"] = units - 150 }
+                            : new Dictionary<EntProtoId, int> { [product] = units };
+                    }
+                    OpenOutput(context);
+                    harvester.Comp.StoredEnergy = harvester.Comp.EnergyPerReward;
+                    produced = system.TryProduceReward(harvester);
+                    repeated = system.TryProduceReward(harvester);
+                });
+                await server.WaitAssertion(() =>
+                {
+                    Assert.That(produced, Is.EqualTo(accepted));
+                    Assert.That(repeated, Is.False);
+                    Assert.That(RewardItems(context), Is.EqualTo(entities));
+                    Assert.That(RewardUnits(context), Is.EqualTo(accepted ? units : 0));
+                    Assert.That(harvester.Comp.StoredEnergy,
+                        Is.EqualTo(accepted ? 0d : harvester.Comp.EnergyPerReward));
+                    foreach (var uid in GetRewardEntities(context))
+                    {
+                        if (!server.EntMan.TryGetComponent<StackComponent>(uid, out var stack))
+                            continue;
+                        Assert.That(stack.Count, Is.InRange(1, server.System<StackSystem>().GetMaxCount(stack)));
+                    }
+                });
+            }
+            finally
+            {
+                await server.WaitPost(() =>
+                {
+                    foreach (var (reward, products) in originals)
+                        reward.Products = products;
+                });
+            }
         });
     }
 
@@ -340,7 +414,7 @@ public sealed class FishBluespaceInfrastructureTest
             await server.WaitPost(() =>
             {
                 OpenOutput(context);
-                harvester.Comp.StoredEnergy = 60_000_000d;
+                harvester.Comp.StoredEnergy = 15_000_000d;
             });
             await server.WaitAssertion(() => Assert.That(system.CanProduceReward(harvester, out _), Is.True,
                 "The fixture must be capable of producing a reward before its prerequisite is removed."));
@@ -385,7 +459,7 @@ public sealed class FishBluespaceInfrastructureTest
             {
                 Assert.That(system.CanOperate(harvester), Is.False);
                 Assert.That(produced, Is.False);
-                Assert.That(harvester.Comp.StoredEnergy, Is.EqualTo(60_000_000d));
+                Assert.That(harvester.Comp.StoredEnergy, Is.EqualTo(15_000_000d));
                 Assert.That(RewardItems(context), Is.Zero);
             });
         });
@@ -516,20 +590,31 @@ public sealed class FishBluespaceInfrastructureTest
 
     private static int RewardItems(StationContext context)
     {
+        return GetRewardEntities(context).Count;
+    }
+
+    private static int RewardUnits(StationContext context)
+    {
+        var server = context.Pair.Server;
+        return GetRewardEntities(context).Sum(uid => server.System<StackSystem>().GetCount(uid));
+    }
+
+    private static List<EntityUid> GetRewardEntities(StationContext context)
+    {
         var server = context.Pair.Server;
         var containers = server.System<SharedContainerSystem>();
         var products = server.ProtoMan.EnumeratePrototypes<FishBluespaceHarvesterLootPrototype>()
             .SelectMany(reward => reward.Products.Keys).Select(id => id.Id).ToHashSet();
-        var count = 0;
+        var entities = new List<EntityUid>();
         var query = server.EntMan.EntityQueryEnumerator<MetaDataComponent, TransformComponent>();
         while (query.MoveNext(out var uid, out var meta, out var transform))
         {
             // Fish-edit: детали в machine_parts, предметы в руках и вложенных контейнерах не являются выданной добычей.
             if (transform.MapUid == context.FirstMap && meta.EntityPrototype is { } prototype && products.Contains(prototype.ID) &&
                 !containers.IsEntityOrParentInContainer(uid, meta, transform))
-                count++;
+                entities.Add(uid);
         }
-        return count;
+        return entities;
     }
 
     private static async Task WithStations(Func<StationContext, Task> scenario)

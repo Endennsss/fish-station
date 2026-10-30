@@ -220,6 +220,7 @@ public sealed class FishXenobiologyUiTest
         {
             var pair = context.Pair;
             var client = pair.Client;
+            var loc = client.ResolveDependency<ILocalizationManager>();
             FishXenobiologyProcessorWindow window = null!;
             await client.WaitPost(() => window = client.ResolveDependency<IUserInterfaceManager>().WindowRoot.Children
                 .OfType<FishXenobiologyProcessorWindow>().Single());
@@ -239,6 +240,8 @@ public sealed class FishXenobiologyUiTest
                 Assert.That(window.ProcessButton.Disabled, Is.False);
                 Assert.That(window.EjectButton.Disabled, Is.False);
                 Assert.That(window.InputName.Text, Is.Not.Null.And.Not.Empty);
+                Assert.That(window.ActionHint.Visible, Is.True);
+                Assert.That(window.EjectButton.Text, Is.EqualTo(loc.GetString("fish-xeno-eject")));
             });
             await Click(pair, window.ProcessButton);
             await pair.RunTicksSync(15);
@@ -248,6 +251,8 @@ public sealed class FishXenobiologyUiTest
             {
                 Assert.That(window.ProcessButton.Disabled, Is.True);
                 Assert.That(window.EjectButton.Disabled, Is.False);
+                Assert.That(window.ActionHint.Visible, Is.True);
+                Assert.That(window.EjectButton.Text, Is.EqualTo(loc.GetString("fish-xeno-cancel-eject")));
             });
             await Click(pair, window.EjectButton);
             await pair.RunTicksSync(15);
@@ -257,6 +262,7 @@ public sealed class FishXenobiologyUiTest
                 Assert.That(window.EmptyLabel.Visible, Is.True);
                 Assert.That(window.ProcessButton.Disabled, Is.True);
                 Assert.That(window.EjectButton.Disabled, Is.True);
+                Assert.That(window.ActionHint.Visible, Is.False);
             });
         }, connected: true);
     }
@@ -344,6 +350,90 @@ public sealed class FishXenobiologyUiTest
                 Assert.That(window.CatalogEmpty.Visible, Is.False);
                 Assert.That(window.SelectedBreed, Is.EqualTo("FishBlue"));
                 Assert.That(window.BreedDetails.Children, Is.EqualTo(details));
+            });
+        });
+    }
+
+    /// <summary>Read-only measurements preserve the recipe page, scroll position and active search input.</summary>
+    [Test]
+    public async Task CatalogRecipePageKeepsScrollAndFocusAcrossMeasurementsAndPageChanges()
+    {
+        await WithConsoleWindow(async (pair, window) =>
+        {
+            var viewport = new Vector2(1000, 450);
+            var scroll = window.FindControl<ScrollContainer>("CatalogRecipesScroll");
+            var care = window.FindControl<ScrollContainer>("CatalogDetailsScroll");
+            var recipesButton = window.FindControl<Button>("CatalogRecipesButton");
+            var careButton = window.FindControl<Button>("CatalogCareButton");
+            Control[] recipes = [];
+            var position = Vector2.Zero;
+            await Click(pair, window.FindControl<Button>("CatalogButton"));
+            await pair.Client.WaitPost(() =>
+            {
+                window.FitToViewport(viewport);
+                window.SelectBreed("FishGrey");
+                ArrangeWindow(window, viewport);
+            });
+            await Click(pair, recipesButton);
+            await pair.Client.WaitPost(() =>
+            {
+                ArrangeWindow(window, viewport);
+                scroll.SetScrollValue(new Vector2(0, 80));
+                position = scroll.GetScrollValue();
+                recipes = window.BreedRecipes.Children.ToArray();
+                window.CatalogSearch.GrabKeyboardFocus();
+                window.UpdateState(new FishXenobiologyBoundUserInterfaceState { Powered = true, Specimens = [Specimen(202, "202")] });
+                ArrangeWindow(window, viewport);
+            });
+            await pair.Client.WaitAssertion(() =>
+            {
+                Assert.That(position.Y, Is.GreaterThan(0), "The recipe reference must exceed the compact viewport for this regression.");
+                Assert.That(window.SelectedBreed, Is.EqualTo("FishGrey"));
+                Assert.That(scroll.VisibleInTree, Is.True);
+                Assert.That(care.VisibleInTree, Is.False);
+                Assert.That(scroll.GetScrollValue(), Is.EqualTo(position));
+                Assert.That(window.BreedRecipes.Children, Is.EqualTo(recipes));
+                Assert.That(pair.Client.ResolveDependency<IUserInterfaceManager>().KeyboardFocused, Is.SameAs(window.CatalogSearch));
+            });
+            await Click(pair, careButton);
+            await pair.Client.WaitPost(() => ArrangeWindow(window, viewport));
+            await Click(pair, recipesButton);
+            await pair.Client.WaitPost(() => ArrangeWindow(window, viewport));
+            await pair.Client.WaitAssertion(() =>
+            {
+                Assert.That(scroll.GetScrollValue(), Is.EqualTo(position));
+                Assert.That(window.BreedRecipes.Children, Is.EqualTo(recipes));
+            });
+        });
+    }
+
+    /// <summary>A mutation target can be opened even when a tier filter conceals it.</summary>
+    [Test]
+    public async Task CatalogNavigationRevealsBreedHiddenByTierFilter()
+    {
+        await WithConsoleWindow(async (pair, window) =>
+        {
+            var loc = pair.Client.ResolveDependency<ILocalizationManager>();
+            Button option = null!;
+            var selected = false;
+            await Click(pair, window.FindControl<Button>("CatalogButton"));
+            await Click(pair, window.CatalogTierFilter);
+            await pair.Client.WaitPost(() => option = Descendants(window.CatalogTierFilter.OptionsScroll).OfType<Button>()
+                .Single(button => button.Text == loc.GetString("fish-xeno-tier", ("tier", 0))));
+            await Click(pair, option);
+            await pair.Client.WaitAssertion(() =>
+            {
+                Assert.That(window.CatalogTierFilter.SelectedId, Is.EqualTo(0));
+                Assert.That(window.BreedList.Children.Count(child => child.Visible), Is.EqualTo(1));
+            });
+            await pair.Client.WaitPost(() => selected = window.SelectBreed("FishBlue"));
+            await pair.Client.WaitAssertion(() =>
+            {
+                Assert.That(selected, Is.True);
+                Assert.That(window.SelectedBreed, Is.EqualTo("FishBlue"));
+                Assert.That(window.CatalogTierFilter.SelectedId, Is.EqualTo(-1));
+                Assert.That(window.BreedList.Children.Count(child => child.Visible), Is.GreaterThan(1));
+                Assert.That(window.BreedList.Children.OfType<Button>().Single(button => button.Pressed).Visible, Is.True);
             });
         });
     }
@@ -517,6 +607,23 @@ public sealed class FishXenobiologyUiTest
                         if (viewport.X < 760)
                             AssertInside(window, console.FindControl<Button>("CatalogBack"));
                     });
+                    await Click(pair, console.FindControl<Button>("CatalogRecipesButton"));
+                    await pair.Client.WaitPost(() => ArrangeWindow(window, viewport));
+                    await pair.Client.WaitAssertion(() =>
+                    {
+                        var scroll = console.FindControl<ScrollContainer>("CatalogRecipesScroll");
+                        Assert.That(scroll.VisibleInTree, Is.True);
+                        AssertInside(window, scroll);
+                        AssertInside(window, console.FindControl<Label>("CatalogName"));
+                        AssertInside(window, console.FindControl<Button>("CatalogCareButton"));
+                        AssertInside(window, console.FindControl<Button>("CatalogRecipesButton"));
+                        Assert.That(scroll.Height, Is.GreaterThan(0));
+                        AssertHorizontalInside(scroll, console.BreedRecipes, viewport);
+                        foreach (var recipe in Descendants(console.BreedRecipes).OfType<RichTextLabel>())
+                            AssertHorizontalInside(scroll, recipe, viewport);
+                    });
+                    await Click(pair, console.FindControl<Button>("CatalogCareButton"));
+                    await pair.Client.WaitPost(() => ArrangeWindow(window, viewport));
                     if (viewport.X < 760)
                     {
                         var guideButton = console.FindControl<Button>("GuideButton");
@@ -666,6 +773,13 @@ public sealed class FishXenobiologyUiTest
                    $"Visible={control.VisibleInTree}, Disabled={control.Disabled}, Pressed={control.Pressed}, " +
                    $"Focus={focused?.GetType().Name}({focused?.Name}), OnPressed={pressed}";
         }
+        // Fish-edit: кадр UI применяет отложенную раскладку окна и popup до захвата координат реального клика.
+        await pair.RunTicksSync(1);
+        await pair.Client.WaitAssertion(() =>
+        {
+            Assert.That(control.Width, Is.GreaterThan(0), Describe("layout before input"));
+            Assert.That(control.Height, Is.GreaterThan(0), Describe("layout before input"));
+        });
         await pair.Client.WaitPost(() =>
         {
             control.OnPressed += OnPressed;

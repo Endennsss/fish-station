@@ -3,8 +3,8 @@ fish-xeno-specimens = Образцы
 fish-xeno-catalog = Справочник пород
 fish-xeno-count = Образцов в радиусе: { $count }
 fish-xeno-unpowered = Нет питания. Измерения недоступны.
-fish-xeno-process = Извлечь экстракты
-fish-xeno-eject = Извлечь образец
+fish-xeno-process = Получить экстракты
+fish-xeno-eject = Вернуть особь
 fish-xeno-search = Поиск породы...
 fish-xeno-captured = Образец помещён в переносчик.
 fish-xeno-baby = детёныш
@@ -65,6 +65,9 @@ fish-xeno-no-specimens = В радиусе сканирования нет ос�
 fish-xeno-no-matching-specimens = По вашему запросу ничего не найдено.
 fish-xeno-no-breeds = По вашему запросу породы не найдены.
 fish-xeno-select-specimen = Выберите особь для просмотра её состояния.
+fish-xeno-colony-start-hint = Выведите слайма из стартовой культуры и держите рядом с консолью. Здесь появятся его состояние и наследственные признаки. Условия роста и реакции экстрактов доступны в справочнике пород.
+fish-xeno-search-hint = Измените поисковый запрос или выберите «Все особи», чтобы вернуть скрытых особей в список.
+fish-xeno-offline-hint = Восстановите питание для измерения состояния колонии. Справочник пород доступен без питания.
 fish-xeno-back-to-list = К списку
 fish-xeno-open-breed = Справка о породе
 fish-xeno-selected-breed = { $breed } · Поколение { $generation }
@@ -93,7 +96,16 @@ fish-xeno-colony-summary = Показано { $visible } / { $total } · Тре�
 fish-xeno-catalog-count = Пород: { $count }
 fish-xeno-help = Краткая справка
 fish-xeno-tier = Уровень мутаций: { $tier }
+fish-xeno-tier-all = Все уровни мутаций
+fish-xeno-catalog-care = Уход и мутации
+fish-xeno-catalog-recipes = Рецепты экстрактов
 fish-xeno-care = Условия роста
+fish-xeno-care-duration = Время взросления
+fish-xeno-care-growth-biomass = Биомасса для взросления
+fish-xeno-care-division-biomass = Биомасса для деления
+fish-xeno-care-temperature = Температура тела
+fish-xeno-care-temperature-value = { $minimum }...{ $maximum } °C
+fish-xeno-seconds = { $seconds } с
 fish-xeno-care-thresholds = Для роста нужно не менее 25% сытости, для деления не менее 50%. В контейнерах рост приостанавливается. Наследственные признаки меняют скорость роста и комфортный диапазон температур.
 fish-xeno-mutation-heading = Пути мутаций
 fish-xeno-mutation-explanation = Доли ниже действуют только при мутации потомка. Наследственный шанс родителя определяет, как часто она возникает.
@@ -111,7 +123,19 @@ fish-xeno-processor-invalid = Нужен необработанный труп �
 fish-xeno-processor-idle = Ожидание особи
 fish-xeno-input-empty = Загрузочная камера пуста
 fish-xeno-input-unknown = Неизвестная особь
-fish-xeno-processor-instructions = Используйте переноску на трупе взрослого слайма, затем переноску с трупом на процессоре. Обработка поглощает труп. Извлечение отменяет текущую обработку.
-fish-xeno-expected-yield = Ожидаемый выход: { $count } экстрактов
+fish-xeno-processor-instructions =
+    1. Захватите труп взрослого слайма переносчиком.
+    2. Примените загруженный переносчик к процессору.
+    3. Нажмите «Получить экстракты».
+fish-xeno-processor-consume-hint = Обработка займёт { $seconds } с и поглотит труп. До завершения особь можно вернуть.
+fish-xeno-processor-cancel-hint = «Отменить и вернуть» остановит обработку и вернёт особь без расходования трупа.
+fish-xeno-processor-power-hint = Для обработки нужно питание. Особь можно вернуть сейчас.
+fish-xeno-processor-invalid-hint = Верните особь и загрузите необработанный труп взрослого слайма с помощью переносчика.
+fish-xeno-cancel-eject = Отменить и вернуть
+fish-xeno-expected-yield = Ожидаемый выход: { $count ->
+    [one] { $count } экстракт
+    [few] { $count } экстракта
+   *[other] { $count } экстрактов
+    }
 fish-xeno-time-remaining = Осталось: { $seconds } с
 fish-xeno-processor-finishing = Завершение обработки...

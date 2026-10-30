@@ -30,15 +30,25 @@ public sealed partial class FishBluespaceHarvesterSystem
         {
             _adminLog.Add(LogType.Action, LogImpact.Low,
                 $"{ToPrettyString(ent)} claimed bluespace harvester reward {reward.ID} at {coordinates}.");
+            var spawnedEntities = 0;
             foreach (var (product, count) in reward.Products)
             {
-                for (var i = 0; i < count; i++)
+                var remaining = count;
+                while (remaining > 0)
                 {
                     // Fish-edit: каждый Spawn может вызвать вложенные события и изменить допустимость выхода.
-                    if (!CanOperate(ent) || !IsSafeOutput(ent, coordinates))
+                    if (spawnedEntities >= MaximumBatchSize || !CanOperate(ent) || !IsSafeOutput(ent, coordinates))
                         return true;
 
-                    Spawn(product, coordinates);
+                    var maxCount = _stack.GetMaxCount(product);
+                    if (maxCount <= 0)
+                        return true;
+
+                    // Fish-edit: количество задаётся в единицах, а каждый вызов создаёт одну штатную стопку.
+                    var units = Math.Min(remaining, maxCount);
+                    remaining -= units;
+                    spawnedEntities++;
+                    _stack.SpawnMultipleAtPosition(product, units, coordinates);
                 }
             }
         }
@@ -164,15 +174,21 @@ public sealed partial class FishBluespaceHarvesterSystem
             reward.Products.Count > MaximumBatchSize)
             return false;
 
-        var totalCount = 0;
+        var totalUnits = 0;
+        var totalEntities = 0;
         foreach (var (product, count) in reward.Products)
         {
-            if (count <= 0 || count > MaximumBatchSize ||
+            if (count <= 0 || count > MaximumBatchUnits ||
                 !_prototype.TryIndex(product, out var prototype) || prototype.Abstract)
                 return false;
 
-            totalCount += count;
-            if (totalCount > MaximumBatchSize)
+            var maxCount = _stack.GetMaxCount(prototype);
+            if (maxCount <= 0)
+                return false;
+
+            totalUnits += count;
+            totalEntities += 1 + (count - 1) / maxCount;
+            if (totalUnits > MaximumBatchUnits || totalEntities > MaximumBatchSize)
                 return false;
         }
 
