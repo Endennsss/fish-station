@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Content.IntegrationTests.Pair;
 using Content.Server.Power.EntitySystems;
-using Content.Shared._Fish.Research.Prototypes;
 using Content.Shared.Research.Components;
 using Content.Shared.Research.Prototypes;
 using Robust.Shared.GameObjects;
@@ -16,20 +15,6 @@ public sealed class FishResearchProgressionTest
 {
     private static readonly ProtoId<TechnologyPrototype> AdvancedCleaning = "AdvancedCleaning";
     private static readonly ProtoId<TechnologyPrototype> Modsuits = "Modsuits";
-
-    [TestPrototypes]
-    private const string Experiments = """
-- type: fishResearchExperiment
-  id: FishStrongerMedicalExperimentTest
-  suffix: Fish
-  name: fish-research-experiment-medical-fabrication-name
-  description: fish-research-experiment-medical-fabrication-description
-  rewardTechnology: AdvancedCleaning
-  discountFraction: 0.5
-  requiredSamples: 1
-  kind: Manufacture
-  acceptedRecipes: []
-""";
 
     [Test]
     public async Task AvailableTechnologiesIncludeEveryEligibleTechnologyAndRemainStable()
@@ -100,183 +85,42 @@ public sealed class FishResearchProgressionTest
         }
     }
 
-    /// <summary>Buying a technology is not a substitute for completing a practical experiment.</summary>
+    /// <summary>A purchase requires and deducts the technology's full prototype cost.</summary>
     [Test]
-    public async Task ResearchingTechnologyDoesNotCompleteHandsOnExperiment()
-    {
-        await WithResearchConsole(async (pair, researchServer, _, _) =>
-        {
-            var server = pair.Server;
-            var research = server.System<ServerResearchSystem>();
-            var target = server.ProtoMan.Index(AdvancedCleaning);
-
-            await server.WaitPost(() => research.AddTechnology(researchServer, "SurgeryTech"));
-            await server.WaitAssertion(() =>
-            {
-                var database = server.EntMan.GetComponent<TechnologyDatabaseComponent>(researchServer);
-                Assert.That(research.GetTechnologyCost(database, target), Is.EqualTo(target.Cost),
-                    "A technology purchase must not complete a hands-on experiment or award its discount.");
-            });
-        });
-    }
-
-    /// <summary>A practical experiment changes the price without gating access to its reward.</summary>
-    [TestCase(false)]
-    [TestCase(true)]
-    public async Task OptionalExperimentDeterminesAdvancedCleaningPurchasePrice(bool completeExperiment)
+    public async Task TechnologyPurchaseRequiresItsFullPrototypeCost()
     {
         await WithResearchConsole(async (pair, researchServer, console, user) =>
         {
             var server = pair.Server;
             var research = server.System<ServerResearchSystem>();
             var target = server.ProtoMan.Index(AdvancedCleaning);
-            var expectedCost = completeExperiment ? (int) Math.Ceiling(target.Cost * 0.75) : target.Cost;
             var purchased = false;
-
             await server.WaitPost(() =>
             {
                 GrantPrerequisites(pair, researchServer, target, new HashSet<string>());
-                if (completeExperiment)
-                    CompleteExperiment(pair, researchServer, "FishMedicalFabrication");
-                research.SyncClientWithServer(console);
                 var points = server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points;
-                research.ModifyServerPoints(researchServer, expectedCost - points);
+                research.ModifyServerPoints(researchServer, target.Cost - 1 - points);
+                purchased = research.UnlockTechnology(console, target, user);
             });
-
             await server.WaitAssertion(() =>
             {
-                var database = server.EntMan.GetComponent<TechnologyDatabaseComponent>(console);
-                Assert.That(research.IsTechnologyAvailable(database, target), Is.True,
-                    "Reward availability must depend on its explicit prerequisites, independently of the experiment.");
-                Assert.That(server.EntMan.GetComponent<ResearchClientComponent>(console).Server,
-                    Is.EqualTo(researchServer));
+                Assert.That(purchased, Is.False);
+                Assert.That(server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points,
+                    Is.EqualTo(target.Cost - 1));
+                Assert.That(server.EntMan.GetComponent<TechnologyDatabaseComponent>(researchServer).UnlockedTechnologies,
+                    Does.Not.Contain(AdvancedCleaning));
             });
-
-            await server.WaitPost(() => purchased = research.UnlockTechnology(console, target, user));
-
-            await server.WaitAssertion(() =>
-            {
-                Assert.Multiple(() =>
-                {
-                    Assert.That(purchased, Is.True,
-                        "The reward must be purchasable for its current price with or without completing the experiment.");
-                    Assert.That(server.EntMan.GetComponent<TechnologyDatabaseComponent>(researchServer).UnlockedTechnologies,
-                        Does.Contain((ProtoId<TechnologyPrototype>) target.ID));
-                    Assert.That(server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points, Is.Zero,
-                        "The purchase must charge exactly the discounted price.");
-                });
-            });
-        });
-    }
-
-    /// <summary>Late discounts refund only the newly earned difference from the actual payment.</summary>
-    [TestCase(false)]
-    [TestCase(true)]
-    public async Task LateExperimentRefundsOnlyPaidDifferenceOnce(bool discountedPurchase)
-    {
-        await WithResearchConsole(async (pair, researchServer, console, user) =>
-        {
-            var server = pair.Server;
-            var research = server.System<ServerResearchSystem>();
-            var target = server.ProtoMan.Index(AdvancedCleaning);
-            var paid = discountedPurchase ? (int) Math.Ceiling(target.Cost * 0.75) : target.Cost;
-            const int budget = 100000;
-            var purchased = false;
-
             await server.WaitPost(() =>
             {
-                GrantPrerequisites(pair, researchServer, target, new HashSet<string>());
-                if (discountedPurchase)
-                    CompleteExperiment(pair, researchServer, "FishMedicalFabrication");
-                research.ModifyServerPoints(researchServer,
-                    budget - server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points);
+                research.ModifyServerPoints(researchServer, 1);
                 purchased = research.UnlockTechnology(console, target, user);
             });
             await server.WaitAssertion(() =>
             {
                 Assert.That(purchased, Is.True);
-                Assert.That(server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points,
-                    Is.EqualTo(budget - paid));
-            });
-
-            await server.WaitPost(() => CompleteExperiment(pair, researchServer, "FishMedicalFabrication"));
-            await server.WaitAssertion(() =>
-            {
-                Assert.That(server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points,
-                    Is.EqualTo(budget - (int) Math.Ceiling(target.Cost * 0.75)));
-                Assert.That(server.EntMan.GetComponent<TechnologyDatabaseComponent>(console)
-                    .FishResearchRefunds.GetValueOrDefault(AdvancedCleaning),
-                    Is.EqualTo(discountedPurchase ? 0 : target.Cost - (int) Math.Ceiling(target.Cost * 0.75)));
-            });
-
-            await server.WaitPost(() =>
-            {
-                CompleteExperiment(pair, researchServer, "FishStrongerMedicalExperimentTest");
-                CompleteExperiment(pair, researchServer, "FishMedicalFabrication");
-                CompleteExperiment(pair, researchServer, "FishStrongerMedicalExperimentTest");
-            });
-            await server.WaitAssertion(() =>
-            {
-                var database = server.EntMan.GetComponent<TechnologyDatabaseComponent>(researchServer);
-                var finalCost = (int) Math.Ceiling(target.Cost * 0.5);
-                Assert.That(research.GetTechnologyCost(database, target), Is.EqualTo(finalCost),
-                    "The strongest discount must replace the earlier discount without stacking.");
-                Assert.That(server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points,
-                    Is.EqualTo(budget - finalCost));
-                Assert.That(database.FishResearchRefunds.GetValueOrDefault(AdvancedCleaning), Is.EqualTo(paid - finalCost));
-            });
-        });
-    }
-
-    /// <summary>A grant without payment never creates points when an experiment completes.</summary>
-    [Test]
-    public async Task FreeTechnologyGrantNeverReceivesExperimentRefund()
-    {
-        await WithResearchConsole(async (pair, researchServer, console, _) =>
-        {
-            var server = pair.Server;
-            var research = server.System<ServerResearchSystem>();
-            var originalPoints = 0;
-            await server.WaitPost(() =>
-            {
-                research.AddTechnology(researchServer, AdvancedCleaning);
-                originalPoints = server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points;
-                CompleteExperiment(pair, researchServer, "FishMedicalFabrication");
-                CompleteExperiment(pair, researchServer, "FishStrongerMedicalExperimentTest");
-                CompleteExperiment(pair, researchServer, "FishMedicalFabrication");
-            });
-            await server.WaitAssertion(() =>
-            {
-                Assert.That(server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points, Is.EqualTo(originalPoints));
-                Assert.That(server.EntMan.GetComponent<TechnologyDatabaseComponent>(console)
-                    .FishResearchRefunds.GetValueOrDefault(AdvancedCleaning), Is.Zero);
-            });
-        });
-    }
-
-    [Test]
-    public async Task DuplicateSampleDoesNotCompleteExperimentOrCreateDiscount()
-    {
-        await WithResearchConsole(async (pair, researchServer, _, _) =>
-        {
-            var server = pair.Server;
-            var research = server.System<ServerResearchSystem>();
-            ProtoId<FishResearchExperimentPrototype> experimentId = "FishAnomalySurvey";
-            var experiment = server.ProtoMan.Index(experimentId);
-            var target = server.ProtoMan.Index(experiment.RewardTechnology);
-            var accepted = new List<bool>();
-            await server.WaitPost(() =>
-            {
-                for (var attempt = 0; attempt < experiment.RequiredSamples + 1; attempt++)
-                    accepted.Add(research.TryRecordFishExperimentSample(researchServer, experiment, "same-family"));
-            });
-            await server.WaitAssertion(() =>
-            {
-                Assert.That(accepted[0], Is.True);
-                Assert.That(accepted.Skip(1), Is.All.EqualTo(false));
-                var database = server.EntMan.GetComponent<TechnologyDatabaseComponent>(researchServer);
-                Assert.That(database.FishExperimentProgress.GetValueOrDefault(experiment.ID), Is.EqualTo(1));
-                Assert.That(research.GetTechnologyCost(database, target), Is.EqualTo(target.Cost));
+                Assert.That(server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points, Is.Zero);
+                Assert.That(server.EntMan.GetComponent<TechnologyDatabaseComponent>(researchServer).UnlockedTechnologies,
+                    Does.Contain(AdvancedCleaning));
             });
         });
     }
@@ -320,70 +164,8 @@ public sealed class FishResearchProgressionTest
         });
     }
 
-    /// <summary>Each experiment is shared by its consoles while another server retains its own price and progress.</summary>
-    [TestCase("FishAnomalySurvey", "AdvancedAnomalyResearch")]
-    [TestCase("FishControlledAnomaly", "AnomalyCoreHarnessing")]
-    [TestCase("FishArtifactStudy", "AbnormalArtifactManipulation")]
-    [TestCase("FishBiologicalSurvey", "MechanizedMedicalTreatment")]
-    [TestCase("FishPowerCellStudy", "FishMicroreactors")]
-    [TestCase("FishRoboticsFabrication", "BiochemicalStasis")]
-    [TestCase("FishMedicalFabrication", "AdvancedCleaning")]
-    [TestCase("FishUraniumProcessingExperiment", "FishBluespaceTheory")]
-    public async Task ExperimentDiscountBelongsToItsServerAndDoesNotStack(string experimentId, string rewardId)
-    {
-        await WithResearchConsole(async (pair, researchServer, console, _) =>
-        {
-            var server = pair.Server;
-            var research = server.System<ServerResearchSystem>();
-            ProtoId<TechnologyPrototype> rewardProto = rewardId;
-            var experiment = server.ProtoMan.Index<FishResearchExperimentPrototype>(experimentId);
-            var reward = server.ProtoMan.Index(rewardProto);
-            var discountedCost = (int) Math.Ceiling(reward.Cost * 0.75);
-            EntityUid secondConsole = default;
-            EntityUid independentServer = default;
-
-            await server.WaitPost(() =>
-            {
-                var coordinates = server.EntMan.GetComponent<TransformComponent>(console).Coordinates;
-                secondConsole = server.EntMan.SpawnEntity("ComputerResearchAndDevelopment", coordinates);
-                independentServer = server.EntMan.SpawnEntity("ResearchAndDevelopmentServer", coordinates);
-                server.System<PowerReceiverSystem>().SetNeedsPower(independentServer, false);
-                research.RegisterClient(secondConsole, researchServer);
-            });
-            await server.WaitAssertion(() =>
-            {
-                Assert.That(experiment.RewardTechnology, Is.EqualTo(rewardProto));
-                Assert.That(research.GetTechnologyCost(server.EntMan.GetComponent<TechnologyDatabaseComponent>(researchServer), reward),
-                    Is.EqualTo(reward.Cost));
-            });
-
-            await server.WaitPost(() => CompleteExperiment(pair, researchServer, experimentId));
-            await server.WaitAssertion(() =>
-            {
-                foreach (var entity in new[] { researchServer, console, secondConsole })
-                {
-                    var database = server.EntMan.GetComponent<TechnologyDatabaseComponent>(entity);
-                    Assert.That(research.GetTechnologyCost(database, reward), Is.EqualTo(discountedCost));
-                    Assert.That(database.FishExperimentProgress.GetValueOrDefault(experimentId),
-                        Is.EqualTo(experiment.RequiredSamples));
-                }
-
-                var independentDatabase = server.EntMan.GetComponent<TechnologyDatabaseComponent>(independentServer);
-                Assert.That(research.GetTechnologyCost(independentDatabase, reward), Is.EqualTo(reward.Cost));
-                Assert.That(independentDatabase.FishExperimentProgress.GetValueOrDefault(experimentId), Is.Zero);
-            });
-            await server.WaitPost(() => CompleteExperiment(pair, researchServer, experimentId));
-            await server.WaitAssertion(() =>
-            {
-                var database = server.EntMan.GetComponent<TechnologyDatabaseComponent>(researchServer);
-                Assert.That(research.GetTechnologyCost(database, reward), Is.EqualTo(discountedCost),
-                    "Repeated experiment completion must not compound its discount.");
-            });
-        });
-    }
-
     /// <summary>A console snapshot from another database cannot bypass the owning server's cost or prerequisites.</summary>
-    [TestCase("discount")]
+    [TestCase("budget")]
     [TestCase("prerequisite")]
     public async Task ForeignConsoleSnapshotCannotAuthorizePurchase(string forgedReason)
     {
@@ -392,7 +174,7 @@ public sealed class FishResearchProgressionTest
             var server = pair.Server;
             var research = server.System<ServerResearchSystem>();
             var target = server.ProtoMan.Index(AdvancedCleaning);
-            var budget = forgedReason == "discount" ? (int) Math.Ceiling(target.Cost * 0.75) : target.Cost;
+            var budget = forgedReason == "budget" ? target.Cost - 1 : target.Cost;
             var purchased = false;
             EntityUid foreignServer = default;
 
@@ -402,17 +184,13 @@ public sealed class FishResearchProgressionTest
                 foreignServer = server.EntMan.SpawnEntity("ResearchAndDevelopmentServer", coordinates);
                 server.System<PowerReceiverSystem>().SetNeedsPower(foreignServer, false);
                 GrantPrerequisites(pair, foreignServer, target, new HashSet<string>());
-                if (forgedReason == "discount")
+                if (forgedReason == "budget")
                     GrantPrerequisites(pair, researchServer, target, new HashSet<string>());
                 var points = server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points;
                 research.ModifyServerPoints(researchServer, budget - points);
             });
             await server.WaitRunTicks(1);
-            await server.WaitPost(() =>
-            {
-                CompleteExperiment(pair, foreignServer, "FishMedicalFabrication");
-                research.Sync(console, foreignServer);
-            });
+            await server.WaitPost(() => research.Sync(console, foreignServer));
             await server.WaitAssertion(() =>
             {
                 var database = server.EntMan.GetComponent<TechnologyDatabaseComponent>(console);
@@ -432,9 +210,9 @@ public sealed class FishResearchProgressionTest
         });
     }
 
-    /// <summary>Buying an already unlocked reward cannot consume the server's remaining points.</summary>
+    /// <summary>Buying an unlocked technology again preserves the server's remaining research points.</summary>
     [Test]
-    public async Task RepeatedRewardPurchaseDoesNotChargeAgain()
+    public async Task RepeatedTechnologyPurchaseDoesNotChargeAgain()
     {
         await WithResearchConsole(async (pair, researchServer, console, user) =>
         {
@@ -448,7 +226,6 @@ public sealed class FishResearchProgressionTest
             await server.WaitPost(() =>
             {
                 GrantPrerequisites(pair, researchServer, target, new HashSet<string>());
-                CompleteExperiment(pair, researchServer, "FishMedicalFabrication");
                 var points = server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points;
                 research.ModifyServerPoints(researchServer, budget - points);
                 firstPurchase = research.UnlockTechnology(console, target, user);
@@ -459,7 +236,7 @@ public sealed class FishResearchProgressionTest
                 Assert.That(firstPurchase, Is.True);
                 Assert.That(secondPurchase, Is.False);
                 Assert.That(server.EntMan.GetComponent<ResearchServerComponent>(researchServer).Points,
-                    Is.EqualTo(budget - (int) Math.Ceiling(target.Cost * 0.75)));
+                    Is.EqualTo(budget - target.Cost));
             });
         });
     }
@@ -652,13 +429,6 @@ public sealed class FishResearchProgressionTest
                     Assert.That(database.UnlockedRecipes, Does.Contain((ProtoId<LatheRecipePrototype>) "FishProcessedUranium"));
             });
         });
-    }
-
-    private static void CompleteExperiment(TestPair pair, EntityUid researchServer, string experimentId)
-    {
-        var experiment = pair.Server.ProtoMan.Index<FishResearchExperimentPrototype>(experimentId);
-        for (var sample = 0; sample < experiment.RequiredSamples; sample++)
-            pair.Server.System<ServerResearchSystem>().TryRecordFishExperimentSample(researchServer, experiment, $"sample-{sample}");
     }
 
     private static void GrantPrerequisites(TestPair pair, EntityUid researchServer,

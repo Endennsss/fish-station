@@ -39,7 +39,6 @@ public sealed partial class FishResearchConsoleMenu : FancyWindow
     private readonly Dictionary<ProtoId<TechnologyPrototype>, FishResearchNodeState> _nodeStates = new();
     private readonly HashSet<ProtoId<TechDisciplinePrototype>> _supported = new();
     private readonly HashSet<ProtoId<TechnologyPrototype>> _unlocked = new();
-    private readonly Dictionary<ProtoId<TechnologyPrototype>, int> _technologyCosts = new();
     private readonly Dictionary<ProtoId<TechDisciplinePrototype>, Button> _disciplineButtons = new();
     private readonly Dictionary<ProtoId<TechDisciplinePrototype>, RichTextLabel> _disciplineProgress = new();
     private FishResearchTreeCatalog? _catalog;
@@ -75,15 +74,11 @@ public sealed partial class FishResearchConsoleMenu : FancyWindow
         GraphPanel.PanelOverride = PanelStyle(Palettes.Slate.BackgroundDark);
         DetailsPanel.PanelOverride = PanelStyle(Palettes.Navy.BackgroundDark);
         FooterPanel.PanelOverride = PanelStyle(Palettes.Slate.Background);
-        OrdersPanel.PanelOverride = PanelStyle(Palettes.Slate.BackgroundDark);
-        DiscountedLegend.FontColorOverride = FishResearchTreeControl.StateColor(FishResearchNodeState.Discounted);
         ResearchedLegend.FontColorOverride = FishResearchTreeControl.StateColor(FishResearchNodeState.Researched);
         AvailableLegend.FontColorOverride = FishResearchTreeControl.StateColor(FishResearchNodeState.Available);
         LockedLegend.FontColorOverride = FishResearchTreeControl.StateColor(FishResearchNodeState.Locked);
         NavigationHint.ToolTip = _loc.GetString("fish-research-tree-navigation");
         FreeChoiceHint.ToolTip = _loc.GetString("fish-research-tree-free-choice");
-        OrdersHint.SetMessage(_loc.GetString("fish-research-experiments-hint"));
-        OrdersButton.ToolTip = _loc.GetString("fish-research-experiments-button-hint");
         ZoomInButton.ToolTip = _loc.GetString("fish-research-tree-zoom-in");
         ZoomOutButton.ToolTip = _loc.GetString("fish-research-tree-zoom-out");
 
@@ -103,7 +98,6 @@ public sealed partial class FishResearchConsoleMenu : FancyWindow
         ServerButton.OnPressed += _ => OnServerButtonPressed?.Invoke();
         ResearchButton.OnPressed += _ => TryResearchSelected();
         SearchEdit.OnTextChanged += _ => ApplyFilter();
-        OrdersButton.OnToggled += args => SetOrdersVisible(args.Pressed);
         SidebarButton.OnToggled += args => SidebarPanel.Visible = args.Pressed;
         CenterButton.OnPressed += _ => Graph.CenterSelection();
         ZoomInButton.OnPressed += _ => Graph.ZoomAt(1.12f, Graph.Size / 2);
@@ -157,7 +151,6 @@ public sealed partial class FishResearchConsoleMenu : FancyWindow
         {
             ResearchButton.Disabled = true;
             PurchaseStatusLabel.SetMessage(_loc.GetString("fish-research-tree-no-database"));
-            UpdateOrders(null);
             return;
         }
 
@@ -169,8 +162,6 @@ public sealed partial class FishResearchConsoleMenu : FancyWindow
             _catalog = new FishResearchTreeCatalog(_prototype, _loc, _sprite, _lathe, database.SupportedDisciplines);
             Graph.SetCatalog(_catalog, _loc);
             BuildDisciplineList();
-            BuildOrders();
-            _technologyCosts.Clear();
             _forceRefresh = false;
         }
 
@@ -181,35 +172,24 @@ public sealed partial class FishResearchConsoleMenu : FancyWindow
 
         var catalog = _catalog!;
         var disciplineTiers = _research.GetDisciplineTiers(database);
-        var costChanged = false;
         _nodeStates.Clear();
         foreach (var (id, technology) in catalog.Technologies)
         {
-            var cost = _research.GetTechnologyCost(database, technology.Prototype);
-            if (!_technologyCosts.TryGetValue(id, out var previousCost) || previousCost != cost)
-            {
-                _technologyCosts[id] = cost;
-                technology.Metadata = _loc.GetString("fish-research-tree-node-meta", ("tier", technology.Prototype.Tier), ("cost", cost));
-                costChanged = true;
-            }
             var nodeState = _unlocked.Contains(id)
                 ? FishResearchNodeState.Researched
                 : !_research.IsTechnologyAvailable(database, technology.Prototype, disciplineTiers)
                     ? FishResearchNodeState.Locked
-                    : cost < technology.Prototype.Cost
-                        ? FishResearchNodeState.Discounted
-                        : FishResearchNodeState.Available;
+                    : FishResearchNodeState.Available;
             _nodeStates.Add(id, nodeState);
         }
         Graph.UpdateStates(_nodeStates);
 
         if (progressChanged)
             UpdateDisciplineProgress();
-        UpdateOrders(database);
 
         if (SelectedTechnology == null)
         {
-            var initial = catalog.Technologies.Keys.FirstOrDefault(id => _nodeStates[id] is FishResearchNodeState.Available or FishResearchNodeState.Discounted);
+            var initial = catalog.Technologies.Keys.FirstOrDefault(id => _nodeStates[id] == FishResearchNodeState.Available);
             if (initial == default)
                 initial = catalog.Technologies.Keys.FirstOrDefault();
             if (initial != default)
@@ -219,7 +199,7 @@ public sealed partial class FishResearchConsoleMenu : FancyWindow
             }
         }
 
-        _detailsDirty |= catalogChanged || progressChanged || costChanged;
+        _detailsDirty |= catalogChanged || progressChanged;
         RefreshDetails();
     }
 
@@ -259,7 +239,7 @@ public sealed partial class FishResearchConsoleMenu : FancyWindow
             !_entity.TryGetComponent(_console, out TechnologyDatabaseComponent? database))
             return;
 
-        if (_points < _research.GetTechnologyCost(database, technology.Prototype) ||
+        if (_points < technology.Prototype.Cost ||
             !HasConsoleAccess() || !_research.IsTechnologyAvailable(database, technology.Prototype))
             return;
 
@@ -351,14 +331,13 @@ public sealed partial class FishResearchConsoleMenu : FancyWindow
         if (_catalog == null || !_catalog.Technologies.ContainsKey(id))
             return;
 
-        SetOrdersVisible(false);
         if (!Graph.VisibleTechnologyIds.Contains(id))
         {
             SearchEdit.Text = string.Empty;
             SetDiscipline(null);
         }
         Graph.SelectTechnology(id);
-        // Fish-start: скрытое дерево получает актуальный размер только после новой раскладки.
+        // Fish-start: после смены фильтра центрируем дерево с актуальным размером раскладки.
         _centerAfterNavigation = true;
         InvalidateArrange();
         // Fish-end

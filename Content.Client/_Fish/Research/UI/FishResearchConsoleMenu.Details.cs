@@ -38,18 +38,9 @@ public sealed partial class FishResearchConsoleMenu
                 DetailsContent.AddChild(Text(_loc.GetString("fish-research-tree-discipline-tier",
                     ("discipline", _loc.GetString(discipline.Name)), ("tier", prototype.Tier)), color: discipline.Color));
                 DetailsContent.AddChild(Text(technology.Description));
-                var cost = _technologyCosts.GetValueOrDefault(id, prototype.Cost);
-                if (cost < prototype.Cost)
-                {
-                    var baseCost = Text(_loc.GetString("fish-research-tree-base-cost", ("cost", prototype.Cost)));
-                    baseCost.Name = "TechnologyBaseCost";
-                    DetailsContent.AddChild(baseCost);
-                }
-                var costLabel = Text(_loc.GetString("fish-research-tree-cost", ("cost", cost)), true, Palettes.Gold.Base);
+                var costLabel = Text(_loc.GetString("fish-research-tree-cost", ("cost", prototype.Cost)), true, Palettes.Gold.Base);
                 costLabel.Name = "TechnologyCost";
                 DetailsContent.AddChild(costLabel);
-                if (cost < prototype.Cost)
-                    DetailsContent.AddChild(Text(_loc.GetString("fish-research-tree-discount-applied")));
                 DetailsContent.AddChild(Text(_loc.GetString("fish-research-tree-requirements"), true));
                 AddTechnologyRequirements(prototype);
                 DetailsContent.AddChild(Text(_loc.GetString("fish-research-tree-unlocks", ("count", technology.Recipes.Count)), true));
@@ -130,7 +121,7 @@ public sealed partial class FishResearchConsoleMenu
     private void UpdatePurchaseStatus()
     {
         ResearchButton.Disabled = true;
-        if (!_entity.TryGetComponent(_console, out TechnologyDatabaseComponent? database))
+        if (!_entity.HasComponent<TechnologyDatabaseComponent>(_console))
         {
             PurchaseStatusLabel.SetMessage(_loc.GetString("fish-research-tree-no-database"));
             return;
@@ -141,7 +132,7 @@ public sealed partial class FishResearchConsoleMenu
             return;
         }
 
-        var cost = _research.GetTechnologyCost(database, technology.Prototype);
+        var cost = technology.Prototype.Cost;
         string message;
         Color color;
         if (_unlocked.Contains(id))

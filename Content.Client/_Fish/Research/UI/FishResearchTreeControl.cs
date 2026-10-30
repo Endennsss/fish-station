@@ -16,7 +16,6 @@ public sealed partial class FishResearchTreeControl : Control
 {
     private static readonly Vector2 NodeSize = new(252, 124);
     private static readonly Color ResearchedTextColor = Color.InterpolateBetween(Palettes.Green.Base, Color.White, 0.35f);
-    private static readonly Color DiscountedTextColor = Color.InterpolateBetween(Palettes.Gold.Base, Color.White, 0.25f);
     private static readonly Color AvailableTextColor = Color.InterpolateBetween(Palettes.Navy.Base, Color.White, 0.55f);
     private static readonly Color LockedTextColor = Color.InterpolateBetween(Palettes.Slate.Base, Color.White, 0.45f);
     private const float ColumnSpacing = 308;
@@ -394,7 +393,6 @@ public sealed partial class FishResearchTreeControl : Control
     internal static Color StateColor(FishResearchNodeState state) => state switch
     {
         FishResearchNodeState.Researched => ResearchedTextColor,
-        FishResearchNodeState.Discounted => DiscountedTextColor,
         FishResearchNodeState.Available => AvailableTextColor,
         _ => LockedTextColor,
     };

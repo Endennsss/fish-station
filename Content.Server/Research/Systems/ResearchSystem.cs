@@ -34,7 +34,6 @@ namespace Content.Server.Research.Systems
             InitializeConsole();
             InitializeSource();
             InitializeServer();
-            InitializeFishExperiments(); // Fish-edit: учитываем результаты практических экспериментов.
             InitializePopulationScaling(); // Sunrise-Edit
 
             SubscribeLocalEvent<TechnologyDatabaseComponent, ResearchRegistrationChangedEvent>(OnDatabaseRegistrationChanged);

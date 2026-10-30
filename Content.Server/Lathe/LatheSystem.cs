@@ -236,10 +236,6 @@ namespace Content.Server.Lathe
                 {
                     var result = Spawn(resultProto, Transform(uid).Coordinates);
                     EnsureComp<DontSellComponent>(result); // Sunrise-Edit
-                    // Fish-start: засчитываем только готовую продукцию до слияния стеков.
-                    var experimentEvent = new Content.Shared._Fish.Research.FishLatheProducedEvent(currentRecipe.ID, result);
-                    RaiseLocalEvent(uid, ref experimentEvent);
-                    // Fish-end
                     _stack.TryMergeToContacts(result);
                     // Sunrise-Start
                     if (currentRecipe.PrintTicket)

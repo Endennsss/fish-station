@@ -101,16 +101,11 @@ internal sealed record FishResearchTechnology(
     string Metadata,
     Texture Icon,
     IReadOnlyList<FishResearchRecipe> Recipes,
-    string SearchText)
-{
-    /// <summary>Cached tier and effective price text refreshed with the console database.</summary>
-    public string Metadata { get; set; } = Metadata;
-}
+    string SearchText);
 
 internal enum FishResearchNodeState : byte
 {
     Locked,
     Available,
-    Discounted,
     Researched,
 }

@@ -21,7 +21,6 @@ public sealed partial class ResearchSystem
         primaryDb.SupportedDisciplines = otherDb.SupportedDisciplines;
         primaryDb.UnlockedTechnologies = otherDb.UnlockedTechnologies;
         primaryDb.UnlockedRecipes = otherDb.UnlockedRecipes;
-        CopyFishExperimentSnapshot(primaryDb, otherDb); // Fish-edit: консоль получает прогресс только выбранной базы.
 
         Dirty(primaryUid, primaryDb);
 
@@ -81,20 +80,13 @@ public sealed partial class ResearchSystem
         if (!CanServerUnlockTechnology(client, prototype, clientDatabase, component))
             return false;
 
-        // Fish-start: цену и оплату определяет база подключённого сервера.
-        var serverDatabase = Comp<TechnologyDatabaseComponent>(serverEnt.Value);
-        var cost = GetTechnologyCost(serverDatabase, prototype);
-        // Fish-end
         AddTechnology(serverEnt.Value, prototype);
         TrySetMainDiscipline(prototype, serverEnt.Value);
-        // Fish-start: записываем реальную оплату для однократного возврата поздней скидки.
-        ModifyServerPoints(serverEnt.Value, -cost);
-        RecordFishResearchPurchase(serverEnt.Value, prototype.ID, cost);
-        // Fish-end
+        ModifyServerPoints(serverEnt.Value, -prototype.Cost);
         UpdateTechnologyCards(serverEnt.Value);
 
         _adminLog.Add(LogType.Action, LogImpact.Medium,
-            $"{ToPrettyString(user):player} unlocked {prototype.ID} (discipline: {prototype.Discipline}, tier: {prototype.Tier}, cost: {cost}) at {ToPrettyString(client)}, for server {ToPrettyString(serverEnt.Value)}."); // Fish-edit: журнал содержит фактическую стоимость.
+            $"{ToPrettyString(user):player} unlocked {prototype.ID} (discipline: {prototype.Discipline}, tier: {prototype.Tier}, cost: {prototype.Cost}) at {ToPrettyString(client)}, for server {ToPrettyString(serverEnt.Value)}.");
         return true;
     }
 
@@ -164,7 +156,7 @@ public sealed partial class ResearchSystem
         if (!IsTechnologyAvailable(serverDatabase, technology))
             return false;
 
-        if (GetTechnologyCost(serverDatabase, technology) > serverComp.Points)
+        if (technology.Cost > serverComp.Points)
             return false;
         // Fish-end
 
@@ -180,7 +172,6 @@ public sealed partial class ResearchSystem
         component.SupportedDisciplines = new List<ProtoId<TechDisciplinePrototype>>();
         component.UnlockedTechnologies = new List<ProtoId<TechnologyPrototype>>();
         component.UnlockedRecipes = new List<ProtoId<LatheRecipePrototype>>();
-        ClearFishExperimentSnapshot(component); // Fish-edit: отключённая консоль не сохраняет чужие результаты.
         Dirty(uid, component);
     }
 }

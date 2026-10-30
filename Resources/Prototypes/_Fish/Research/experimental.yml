@@ -2,8 +2,8 @@
   id: FishBluespaceTheory
   name: research-technology-fish-bluespace-theory
   icon:
-    sprite: Effects/portal.rsi
-    state: portal-artifact
+    sprite: _Fish/Objects/Materials/bluespace_crystal.rsi
+    state: bluespace_crystal
   discipline: Experimental
   tier: 2
   cost: 7500

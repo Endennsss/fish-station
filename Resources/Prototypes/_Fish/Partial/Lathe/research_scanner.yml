@@ -1,6 +1,0 @@
-- type: !PartialOnly entity
-  id: Protolathe
-  components:
-  - type: Lathe
-    staticPacks:
-    - FishResearchExperimentsStatic

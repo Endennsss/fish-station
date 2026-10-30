@@ -77,23 +77,3 @@
     Steel: 800
     Plastic: 500
     Silver: 200
-
-- type: fishResearchExperiment
-  id: FishSlimeDiversity
-  suffix: Fish
-  name: fish-xeno-experiment-diversity
-  description: fish-xeno-experiment-diversity-desc
-  kind: Xenobiology
-  requiredSamples: 3
-  rewardTechnology: FishXenobiologyAdvanced
-
-- type: fishResearchExperiment
-  id: FishSlimeAdvancedLineages
-  suffix: Fish
-  name: fish-xeno-experiment-lineages
-  description: fish-xeno-experiment-lineages-desc
-  kind: Xenobiology
-  requiredSamples: 2
-  minimumSlimeTier: 2
-  requireAdultSlime: true
-  rewardTechnology: BiochemicalStasis

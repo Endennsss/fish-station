@@ -12,7 +12,6 @@
                     <Label Name="FreeChoiceHint" Text="{Loc 'fish-research-tree-free-choice'}" ClipText="True"/>
                 </BoxContainer>
                 <LineEdit Name="SearchEdit" PlaceHolder="{Loc 'fish-research-tree-search'}" HorizontalExpand="True" VerticalAlignment="Center"/>
-                <Button Name="OrdersButton" Access="Public" Text="{Loc 'fish-research-experiments-button'}" ToggleMode="True" VerticalAlignment="Center"/>
                 <Button Name="ServerButton" Text="{Loc 'research-console-menu-server-selection-button'}" VerticalAlignment="Center"/>
             </BoxContainer>
         </PanelContainer>
@@ -35,14 +34,6 @@
                 </BoxContainer>
             </PanelContainer>
         </BoxContainer>
-        <PanelContainer Name="OrdersPanel" Access="Public" HorizontalExpand="True" VerticalExpand="True" Visible="False">
-            <BoxContainer Orientation="Vertical" HorizontalExpand="True" VerticalExpand="True" Margin="10" SeparationOverride="8">
-                <RichTextLabel Name="OrdersHint" HorizontalExpand="True"/>
-                <ScrollContainer HScrollEnabled="False" HorizontalExpand="True" VerticalExpand="True">
-                    <BoxContainer Name="OrdersContent" Access="Public" Orientation="Vertical" HorizontalExpand="True" SeparationOverride="10"/>
-                </ScrollContainer>
-            </BoxContainer>
-        </PanelContainer>
         <PanelContainer Name="FooterPanel">
             <BoxContainer Orientation="Vertical" Margin="8 5" SeparationOverride="4">
                 <BoxContainer SeparationOverride="8">
@@ -55,7 +46,6 @@
                     <Button Name="ResetButton" Text="{Loc 'fish-research-tree-reset'}"/>
                 </BoxContainer>
                 <BoxContainer SeparationOverride="10">
-                    <Label Name="DiscountedLegend" Text="{Loc 'fish-research-tree-legend-discounted'}"/>
                     <Label Name="ResearchedLegend" Text="{Loc 'fish-research-tree-legend-researched'}"/>
                     <Label Name="AvailableLegend" Text="{Loc 'fish-research-tree-legend-available'}"/>
                     <Label Name="LockedLegend" Text="{Loc 'fish-research-tree-legend-locked'}"/>
