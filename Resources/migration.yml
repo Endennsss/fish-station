@@ -893,8 +893,9 @@ SpawnPointShipwreckHecate: null
 SpawnPointShipwreckTraveller: null
 SpawnMobGolemCult: null
 SpawnMobRobotMedical: null
-WindoorCommandLocked: null
-WindoorSecurityLocked: null
+# WindoorCommandLocked: null  # Fish-Edit 
+
+# WindoorSecurityLocked: null # Fish-Edit 
 SpawnMobRobotStandard: null
 OilJar`Ghee: null
 Painting`MothBigCatch: null
@@ -1225,7 +1226,7 @@ BlueprintMagAsh12Flare: null
 ClothingBackpackDuffelWeaponRifleAsh12: Ash12Box
 WeaponRifleM90GrenadeLauncherBiocode: WeaponRifleM90GrenadeLauncher
 ClothingOuterEliteHardsuitUSSP: null
-GasMinerPlasma: null
+# GasMinerPlasma: null # Fish-Edit 
 # 2026-08-14
 ClothingBackpackSyndieDL6902Filled: PowerpackDL6902
 MMGKit: null
@@ -1321,6 +1322,7 @@ ClothingHandsPowerGlovesUplinkNTERTGamma: null
 ClothingHandsPowerGlovesUplinkNTERTGammaLeader: null
 ClothingHandsPowerGlovesUplinkNTERTCBURN: null
 ClothingHandsPowerGlovesUplinkNTERTEpsilon: null
+DrinkDarkRedRumBottleFull: DrinkRedRumBottleFull
 # 2026-09-10
 ClothingOuterArmorBlueShield: null
 
@@ -1633,3 +1635,15 @@ DrinkWaterJug: JugWater
 
 #2026-09-05
 AsimovCircuitBoard: CrewsimovCircuitBoard
+
+# region Fish-Start
+BigRedThruster: ThrusterLarge
+BigThruster: ThrusterLarge
+HugeRedThruster: ThrusterLarge
+HugeThruster: ThrusterLarge
+RustedThruster: Thruster
+HighSecCommandLocked: AirlockCommandLocked
+HighSecCentralCommandLocked: AirlockCentralCommandLocked
+HighSecArmoryLocked: AirlockArmoryLocked
+HighSecCaptainLocked: AirlockCaptainLocked
+# region Fish-End
