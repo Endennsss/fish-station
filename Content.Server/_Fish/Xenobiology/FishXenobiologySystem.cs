@@ -187,6 +187,11 @@ public sealed partial class FishXenobiologySystem : EntitySystem
     /// <summary>Checks nutrition, adulthood, containment, player control and the colony population limit.</summary>
     public bool CanDivide(EntityUid slime, EntityUid? user = null)
     {
+        // Fish-start: индукция закрепляет взрослого слайма за промышленным циклом.
+        if (HasComp<FishXenobiologyIndustrialInductionComponent>(slime))
+            return false;
+        // Fish-end
+
         if (TerminatingOrDeleted(slime) || !_slimeQuery.TryComp(slime, out var state) ||
             !state.Adult || state.Consumed || state.Suspended || !_mobState.IsAlive(slime) ||
             _container.IsEntityInContainer(slime) || HasPlayerMind(slime) ||
@@ -254,8 +259,11 @@ public sealed partial class FishXenobiologySystem : EntitySystem
     /// <summary>Checks whether a corpse can produce extracts; juveniles and player-controlled specimens cannot.</summary>
     public bool CanHarvest(EntityUid slime)
     {
+        // Fish-start: индуцированное ядро нельзя собрать повторно.
         return !TerminatingOrDeleted(slime) && _slimeQuery.TryComp(slime, out var state) &&
-               state.Adult && !state.Consumed && _mobState.IsDead(slime) && !HasPlayerMind(slime);
+               state.Adult && !state.Consumed && _mobState.IsDead(slime) && !HasPlayerMind(slime) &&
+               !HasComp<FishXenobiologyIndustrialInductionComponent>(slime);
+        // Fish-end
     }
 
     /// <summary>Claims an adult corpse exactly once. The caller spawns the returned yield and deletes the corpse.</summary>

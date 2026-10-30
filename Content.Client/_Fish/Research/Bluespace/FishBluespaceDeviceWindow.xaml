@@ -1,0 +1,32 @@
+<controls:FancyWindow xmlns="https://spacestation14.io"
+                      xmlns:controls="clr-namespace:Content.Client.UserInterface.Controls"
+                      Title="{Loc 'fish-bluespace-window-title'}" MinSize="400 420" SetSize="480 510">
+    <BoxContainer Orientation="Vertical" SeparationOverride="10" Margin="10" HorizontalExpand="True" VerticalExpand="True">
+        <Label Name="DeviceName" StyleClasses="LabelHeading" ClipText="True"/>
+        <Label Name="Status" ClipText="True"/>
+        <ScrollContainer HScrollEnabled="False" HorizontalExpand="True" VerticalExpand="True" ReserveScrollbarSpace="True">
+            <BoxContainer Orientation="Vertical" SeparationOverride="10" HorizontalExpand="True">
+                <PanelContainer>
+                    <BoxContainer Orientation="Vertical" SeparationOverride="6" Margin="10" HorizontalExpand="True">
+                        <Label Text="{Loc 'fish-bluespace-background-label'}" StyleClasses="LabelSubText"/>
+                        <ProgressBar Name="Background" MinValue="0" MaxValue="100" MinHeight="18" HorizontalExpand="True"/>
+                        <Label Name="BackgroundText" ClipText="True"/>
+                        <Label Name="PowerText" ClipText="True"/>
+                    </BoxContainer>
+                </PanelContainer>
+                <RichTextLabel Name="Instructions" HorizontalExpand="True"/>
+                <BoxContainer Name="HarvesterPanel" Orientation="Vertical" SeparationOverride="8" Visible="False">
+                    <Label Text="{Loc 'fish-bluespace-progress-label'}"/>
+                    <ProgressBar Name="Progress" MinValue="0" MaxValue="1" MinHeight="18" HorizontalExpand="True"/>
+                    <Label Name="ProgressText" ClipText="True"/>
+                    <Label Text="{Loc 'fish-bluespace-mode-label'}"/>
+                    <OptionButton Name="PowerMode" HorizontalExpand="True"/>
+                    <Label Text="{Loc 'fish-bluespace-category-label'}"/>
+                    <OptionButton Name="LootCategory" HorizontalExpand="True"/>
+                </BoxContainer>
+                <Label Name="ResearchRate" Visible="False" ClipText="True"/>
+            </BoxContainer>
+        </ScrollContainer>
+        <Button Name="EnableButton" Text="{Loc 'fish-bluespace-enable'}" HorizontalExpand="True"/>
+    </BoxContainer>
+</controls:FancyWindow>

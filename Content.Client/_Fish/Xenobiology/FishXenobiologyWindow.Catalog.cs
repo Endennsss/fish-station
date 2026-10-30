@@ -117,6 +117,18 @@ public sealed partial class FishXenobiologyWindow
             foreach (var reaction in recipes.OrderBy(recipe => recipe.ID))
                 AddRecipe(reaction);
         }
+        foreach (var industrial in _prototype.EnumeratePrototypes<FishXenobiologyIndustrialRecipePrototype>().OrderBy(recipe => recipe.ID))
+        {
+            if (industrial.Breed.Id != id)
+                continue;
+
+            BreedDetails.AddChild(new Label { Text = _loc.GetString("fish-xeno-industrial-heading"), StyleClasses = { StyleClass.LabelHeading } });
+            AddCatalogText(_loc.GetString("fish-xeno-industrial-catalog", ("required", industrial.RequiredExtracts)));
+            AddCatalogText(_loc.GetString("fish-xeno-industrial-cycle", ("plasma", industrial.PlasmaCost),
+                ("seconds", industrial.Interval.TotalSeconds)));
+            foreach (var (product, count) in industrial.Products)
+                AddCatalogText(_loc.GetString("fish-xeno-industrial-product", ("count", count), ("name", _prototype.Index(product).Name)));
+        }
         return true;
     }
 
