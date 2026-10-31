@@ -1249,3 +1249,17 @@
     message: Теперь на сервисные и медецинские роли ЦК можно зайти без ВЛа.
   id: 127
   url: https://github.com/makura-games/fish-station/pull/498
+- author: NekutGit
+  time: '2026-10-31T09:40:49.0000000+00:00'
+  changes:
+  - type: Add
+    message: Добавлена боевая винтовка SCAR-H калибра .308 в раскраске Синдиката с биокодом.
+  - type: Add
+    message: Добавлены 20-зарядные и 30-зарядные магазины для SCAR-H.
+  - type: Add
+    message: Добавлен оружейный кейс наполненный винтовкой SCAR-H и комплектом из магазинов для него с патронами ПП.
+  id: 128
+  url: https://github.com/makura-games/fish-station/pull/578
+  media:
+  - url: https://github.com/user-attachments/assets/c4d2c988-3075-477c-b3c0-78467471b0dd
+    description: изображение
