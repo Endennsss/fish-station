@@ -12,6 +12,10 @@ public sealed partial class FishVisionDeviceSystem : EntitySystem
     [Dependency] private ItemToggleSystem _itemToggle = default!;
     [Dependency] private IComponentFactory _componentFactory = default!;
 
+    // Очки приоритетнее шлема, термалы дополнительно могут стоять в маске.
+    private static readonly string[] NightVisionSlots = ["eyes", "head"];
+    private static readonly string[] ThermalVisionSlots = ["eyes", "head", "mask"];
+
     public override void Initialize()
     {
         base.Initialize();
@@ -40,8 +44,7 @@ public sealed partial class FishVisionDeviceSystem : EntitySystem
         if (configuredComponents.TryGetComponent<FishNightVisionComponent>(_componentFactory, out _))
         {
             // При одновременном ПНВ на голове и глазах очки имеют устойчивый приоритет.
-            if (TryGetSource<FishNightVisionComponent>(wearer, "eyes", excluded, out var source) ||
-                TryGetSource(wearer, "head", excluded, out source))
+            if (TryGetSource<FishNightVisionComponent>(wearer, NightVisionSlots, excluded, out var source))
             {
                 var vision = EnsureComp<FishNightVisionComponent>(wearer);
                 vision.Color = source!.Color;
@@ -54,7 +57,7 @@ public sealed partial class FishVisionDeviceSystem : EntitySystem
 
         if (configuredComponents.TryGetComponent<FishThermalVisionComponent>(_componentFactory, out _))
         {
-            if (TryGetSource<FishThermalVisionComponent>(wearer, "eyes", excluded, out var source))
+            if (TryGetSource<FishThermalVisionComponent>(wearer, ThermalVisionSlots, excluded, out var source))
             {
                 var vision = EnsureComp<FishThermalVisionComponent>(wearer);
                 vision.Range = source!.Range;
@@ -65,16 +68,23 @@ public sealed partial class FishVisionDeviceSystem : EntitySystem
         }
     }
 
-    private bool TryGetSource<T>(EntityUid wearer, string slot, EntityUid? excluded, out T? source)
+    private bool TryGetSource<T>(EntityUid wearer, string[] slots, EntityUid? excluded, out T? source)
         where T : Component, new()
     {
         source = null;
-        if (!_inventory.TryGetSlotEntity(wearer, slot, out var item) || item == excluded ||
-            TerminatingOrDeleted(item) || !_itemToggle.IsActivated(item.Value) ||
-            !TryComp<ComponentTogglerComponent>(item, out var toggler))
-            return false;
+        foreach (var slot in slots)
+        {
+            if (!_inventory.TryGetSlotEntity(wearer, slot, out var item) || item == excluded ||
+                TerminatingOrDeleted(item) || !_itemToggle.IsActivated(item.Value) ||
+                !TryComp<ComponentTogglerComponent>(item, out var toggler))
+                continue;
 
-        var configuredComponents = toggler.Components;
-        return configuredComponents.TryGetComponent(_componentFactory, out source);
+            var configuredComponents = toggler.Components;
+            if (configuredComponents.TryGetComponent(_componentFactory, out source))
+                return true;
+        }
+
+        source = null;
+        return false;
     }
 }
