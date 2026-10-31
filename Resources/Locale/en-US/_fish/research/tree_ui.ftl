@@ -37,3 +37,4 @@ fish-research-tree-already-researched = This server has already researched this 
 fish-research-tree-locked-reason = Complete all requirements listed above first.
 fish-research-tree-points-missing = Missing research points: { $points }.
 fish-research-tree-ready = This technology is available and ready to research.
+fish-research-tree-director-access-required = Research Director access is required to research technologies.

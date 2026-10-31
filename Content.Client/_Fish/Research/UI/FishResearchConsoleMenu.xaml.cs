@@ -228,9 +228,15 @@ public sealed partial class FishResearchConsoleMenu : FancyWindow
 
     private bool HasConsoleAccess()
     {
-        return _player.LocalEntity is not { } local ||
-               !_entity.TryGetComponent<AccessReaderComponent>(_console, out var access) ||
-               _accessReader.IsAllowed(local, _console, access);
+        if (_player.LocalEntity is not { } local ||
+            !_entity.TryGetComponent<AccessReaderComponent>(_console, out var access) || !access.Enabled)
+            return true;
+
+        // Fish-edit: обновление прав в дереве не создаёт записи в журнале доступа.
+        var items = _accessReader.FindPotentialAccessItems(local);
+        var tags = _accessReader.FindAccessTags(local, items);
+        _accessReader.FindStationRecordKeys(local, out var keys, items);
+        return _accessReader.IsAllowed(tags, keys, _console, access);
     }
 
     private void TryResearchSelected()

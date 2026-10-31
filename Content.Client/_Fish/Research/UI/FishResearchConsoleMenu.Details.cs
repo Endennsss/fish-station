@@ -4,12 +4,24 @@ using Content.Shared.Research.Prototypes;
 using Robust.Client.UserInterface;
 using Robust.Client.UserInterface.Controls;
 using Robust.Shared.Prototypes;
+using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 
 namespace Content.Client._Fish.Research.UI;
 
 public sealed partial class FishResearchConsoleMenu
 {
+    protected override void FrameUpdate(FrameEventArgs args)
+    {
+        base.FrameUpdate(args);
+        var hasAccess = HasConsoleAccess();
+        if (_hasAccess == hasAccess)
+            return;
+
+        _hasAccess = hasAccess;
+        UpdatePurchaseStatus();
+    }
+
     // Fish-edit: детали перестраиваются при выборе или изменении исследований, баланс обновляет только действие.
     private void RefreshDetails()
     {
@@ -147,7 +159,7 @@ public sealed partial class FishResearchConsoleMenu
         }
         else if (!_hasAccess)
         {
-            message = _loc.GetString("research-console-no-access-popup");
+            message = _loc.GetString("fish-research-tree-director-access-required");
             color = Palettes.Red.Base;
         }
         else if (_points < cost)

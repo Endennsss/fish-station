@@ -37,3 +37,4 @@ fish-research-tree-already-researched = Технология уже изучен
 fish-research-tree-locked-reason = Сначала выполните все требования, перечисленные выше.
 fish-research-tree-points-missing = Не хватает научных очков: { $points }.
 fish-research-tree-ready = Технология доступна и готова к исследованию.
+fish-research-tree-director-access-required = Для изучения технологий требуется доступ научного руководителя.

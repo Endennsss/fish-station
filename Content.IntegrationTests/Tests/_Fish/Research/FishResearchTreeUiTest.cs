@@ -769,7 +769,7 @@ public sealed class FishResearchTreeUiTest
                 researchServer = entMan.SpawnEntity("ResearchAndDevelopmentServer", map.GridCoords);
                 console = entMan.SpawnEntity("ComputerResearchAndDevelopment", map.GridCoords);
                 user = entMan.SpawnEntity("MobHuman", map.GridCoords);
-                var card = entMan.SpawnEntity("ResearchIDCard", map.GridCoords);
+                var card = entMan.SpawnEntity("RDIDCard", map.GridCoords);
                 equipped = server.System<InventorySystem>().TryEquip(user, card, "id", force: true);
                 server.PlayerMan.SetAttachedEntity(session, user);
                 opened = ui.TryOpenUi(console, ResearchConsoleUiKey.Key, user);
