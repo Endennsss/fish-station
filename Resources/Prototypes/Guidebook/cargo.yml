@@ -3,6 +3,7 @@
   name: guide-entry-cargo
   text: "/ServerInfo/Guidebook/_Sunrise/Cargo/Cargo.xml"  # Sunrise-Edit
   children:
+  - FishDepartmentOrders # Fish-edit: распределение заявок по отделам и одобрение КМ.
   - CargoBounties
   - Salvage
 

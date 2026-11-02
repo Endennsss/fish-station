@@ -1,0 +1,4 @@
+- type: guideEntry
+  id: FishDepartmentOrders
+  name: guide-entry-fish-department-orders
+  text: "/ServerInfo/Guidebook/_Fish/Cargo/Orders.xml"
