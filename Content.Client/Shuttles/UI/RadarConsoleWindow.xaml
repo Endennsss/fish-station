@@ -1,25 +1,10 @@
 <controls:FancyWindow xmlns="https://spacestation14.io"
                       xmlns:controls="clr-namespace:Content.Client.UserInterface.Controls"
-                      xmlns:ui="clr-namespace:Content.Client.Shuttles.UI"
+                      xmlns:fish="clr-namespace:Content.Client._Fish.Shuttles.UI"
                       Title="{Loc 'radar-console-window-title'}"
                       SetSize="648 648"
                       MinSize="400 320">
     <!-- Fish-start: карта и управление отдельным сканером масс -->
-    <BoxContainer Orientation="Vertical" Margin="6" SeparationOverride="4">
-        <BoxContainer SeparationOverride="8">
-            <Label Text="{Loc 'fish-mass-scanner-waypoint'}" StyleClasses="LabelKeyText"/>
-            <Label Name="WaypointReading" Text="{Loc 'fish-mass-scanner-place'}" HorizontalExpand="True"/>
-            <Button Name="ClearWaypoint" Text="{Loc 'fish-mass-scanner-clear'}" Disabled="True"/>
-        </BoxContainer>
-        <ui:ShuttleNavControl Name="RadarScreen" MassScannerDisplay="True" MinSize="0 0"
-                              VerticalExpand="True"/>
-        <BoxContainer SeparationOverride="4">
-            <Label Name="RangeLabel" MouseFilter="Stop" ToolTip="{Loc 'fish-mass-scanner-ruler-hint'}" HorizontalExpand="True" StyleClasses="LabelKeyText"/>
-            <Button Name="ZoomIn" Text="+" MinWidth="32" ToolTip="{Loc 'fish-mass-scanner-zoom-in'}"/>
-            <Button Name="ZoomOut" Text="−" MinWidth="32" ToolTip="{Loc 'fish-mass-scanner-zoom-out'}"/>
-            <Button Name="Labels" Text="{Loc 'fish-mass-scanner-labels'}" ToggleMode="True" Pressed="True"/>
-            <Button Name="Sweep" Text="{Loc 'fish-mass-scanner-sweep'}" ToggleMode="True" Pressed="True"/>
-        </BoxContainer>
-    </BoxContainer>
+    <fish:FishRadarPanel Name="Scanner" Margin="6"/>
     <!-- Fish-end -->
 </controls:FancyWindow>

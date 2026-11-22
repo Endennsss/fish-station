@@ -18,14 +18,13 @@ public sealed partial class NavScreen : BoxContainer
     private EntityUid? _consoleEntity; // Entity of controlling console
     private EntityUid? _shuttleEntity;
 
+    private ShuttleNavControl NavRadar => Scanner.RadarScreen; // Fish-edit: радар внутри общей панели
+
     public NavScreen()
     {
         RobustXamlLoader.Load(this);
         IoCManager.InjectDependencies(this);
         _xformSystem = _entManager.System<SharedTransformSystem>();
-
-        IFFToggle.OnToggled += OnIFFTogglePressed;
-        IFFToggle.Pressed = NavRadar.ShowIFF;
 
         DockToggle.OnToggled += OnDockTogglePressed;
         DockToggle.Pressed = NavRadar.ShowDocks;
@@ -46,12 +45,6 @@ public sealed partial class NavScreen : BoxContainer
     {
         _consoleEntity = console;
         NavRadar.SetConsole(console);
-    }
-
-    private void OnIFFTogglePressed(BaseButton.ButtonEventArgs args)
-    {
-        NavRadar.ShowIFF ^= true;
-        args.Button.Pressed = NavRadar.ShowIFF;
     }
 
     private void OnDockTogglePressed(BaseButton.ButtonEventArgs args)

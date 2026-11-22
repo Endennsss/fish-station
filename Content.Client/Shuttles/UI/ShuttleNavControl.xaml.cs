@@ -156,15 +156,16 @@ public sealed partial class ShuttleNavControl : BaseShuttleControl
             {
                 _scannerMap = MapId.Nullspace;
                 ClearScannerWaypoint();
-                DrawMassScanner(handle, false);
+                DrawMassScanner(handle);
                 DrawNoSignal(handle);
+                DrawScannerBezel(handle);
             }
             // Fish-end
             return;
         }
 
         if (MassScannerDisplay) // Fish-edit: рисуем шкалу под контактами
-            DrawMassScanner(handle, true);
+            DrawMassScanner(handle);
 
         var fixturesQuery = EntManager.GetEntityQuery<FixturesComponent>();
         var bodyQuery = EntManager.GetEntityQuery<PhysicsComponent>();
@@ -185,7 +186,7 @@ public sealed partial class ShuttleNavControl : BaseShuttleControl
             var ourGridToWorld = _transform.GetWorldMatrix(ourGridId.Value);
             var ourGridToShuttle = Matrix3x2.Multiply(ourGridToWorld, worldToShuttle);
             var ourGridToView = ourGridToShuttle * shuttleToView;
-            var color = _shuttles.GetIFFColor(ourGridId.Value, self: true);
+            var color = MassScannerDisplay ? OwnHullColor : _shuttles.GetIFFColor(ourGridId.Value, self: true); // Fish-edit: свой корпус выделяется голубым
 
             DrawGrid(handle, ourGridToView, (ourGridId.Value, ourGrid), color);
             DrawDocks(handle, ourGridId.Value, ourGridToView);
@@ -201,7 +202,7 @@ public sealed partial class ShuttleNavControl : BaseShuttleControl
             ScalePosition(new Vector2(radarVertRadius / -2f, 0f)),
         };
 
-        handle.DrawPrimitives(DrawPrimitiveTopology.TriangleFan, radarPosVerts, Color.Lime);
+        handle.DrawPrimitives(DrawPrimitiveTopology.TriangleFan, radarPosVerts, MassScannerDisplay ? OwnHullColor : Color.Lime);
 
         var rot = ourEntRot + _rotation.Value;
         var viewBounds = new Box2Rotated(new Box2(-WorldRange, -WorldRange, WorldRange, WorldRange).Translated(mapPos.Position), rot, mapPos.Position);
@@ -227,6 +228,8 @@ public sealed partial class ShuttleNavControl : BaseShuttleControl
             var curGridToView = curGridToWorld * worldToShuttle * shuttleToView;
 
             var labelColor = _shuttles.GetIFFColor(grid, self: false, iff);
+            if (MassScannerDisplay) // Fish-edit: приглушаем заливку, сохраняя опознавательный цвет
+                labelColor = ScannerHullColor(labelColor);
             var coordColor = new Color(labelColor.R * 0.8f, labelColor.G * 0.8f, labelColor.B * 0.8f, 0.5f);
 
             // Others default:
@@ -277,11 +280,20 @@ public sealed partial class ShuttleNavControl : BaseShuttleControl
                 var controlExtents = PixelSize - new Vector2(labelDimensions.X, labelDimensions.Y); //new Vector2(labelDimensions.X * 2f, labelDimensions.Y);
                 labelUiPosition = Vector2.Clamp(labelUiPosition, Vector2.Zero, controlExtents);
 
+                // Fish-start: подпись удалённого контакта остаётся у края в направлении цели
+                if (MassScannerDisplay)
+                {
+                    labelUiPosition = ConstrainToScope(gridCentre - MidPointVector + new Vector2(0, yOffset + labelDimensions.Y / 2),
+                        labelDimensions.Length() / 2 + 3 * UIScale) - labelDimensions / 2;
+                    coordUiPosition = labelUiPosition + new Vector2((labelDimensions.X - coordsDimensions.X) / 2, labelDimensions.Y);
+                }
+                // Fish-end
+
                 // draw IFF label
                 handle.DrawString(Font, labelUiPosition, labelText, labelColor);
 
                 // only draw coords label if close enough
-                if (offsetMax < 1)
+                if (offsetMax < 1 && (!MassScannerDisplay || WithinScope(coordUiPosition) && WithinScope(coordUiPosition + coordsDimensions)))
                 {
                     handle.DrawString(Font, coordUiPosition, coordsText, 0.7f, coordColor);
                 }
@@ -294,9 +306,7 @@ public sealed partial class ShuttleNavControl : BaseShuttleControl
             if (!gridAABB.Intersects(viewAABB))
                 continue;
 
-            DrawGrid(handle, curGridToView, grid, labelColor, MassScannerDisplay ? 0.16f : 0.01f); // Fish-edit: выделяем контур цели заливкой
-            if (MassScannerDisplay && ShowSweep) // Fish-edit: отметка при прохождении луча
-                DrawScannerEcho(handle, Vector2.Transform(gridBody.LocalCenter, curGridToView), labelColor);
+            DrawGrid(handle, curGridToView, grid, labelColor, MassScannerDisplay ? 0.085f : 0.01f); // Fish-edit: выделяем контур цели заливкой
             DrawDocks(handle, gUid, curGridToView);
         }
 
@@ -320,6 +330,7 @@ public sealed partial class ShuttleNavControl : BaseShuttleControl
         {
             DrawScannerWaypoint(handle, mapPos.MapId, worldToShuttle * shuttleToView);
             DrawScannerRuler(handle);
+            DrawScannerBezel(handle);
         }
         // Fish-end
     }

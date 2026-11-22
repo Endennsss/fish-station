@@ -2,7 +2,6 @@ fish-mass-scanner-range = Радиус { $distance } м
 fish-mass-scanner-distance = { $distance } м
 fish-mass-scanner-measurement = { $distance } м · { $bearing }°
 fish-mass-scanner-labels = Подписи
-fish-mass-scanner-sweep = Луч
 fish-mass-scanner-ruler-hint = Курсор измеряет расстояние и угол от верхней отметки шкалы. Колесо меняет масштаб.
 fish-mass-scanner-zoom-in = Приблизить
 fish-mass-scanner-zoom-out = Отдалить

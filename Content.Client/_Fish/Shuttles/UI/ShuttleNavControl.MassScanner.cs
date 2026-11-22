@@ -1,4 +1,5 @@
 using System.Numerics;
+using Content.Shared.Shuttles.Components;
 using Robust.Client.Graphics;
 using Robust.Client.UserInterface;
 using Robust.Shared.Map;
@@ -7,14 +8,19 @@ namespace Content.Client.Shuttles.UI;
 
 public sealed partial class ShuttleNavControl
 {
-    private static readonly Color ScopeBackground = Color.FromHex("#09191D");
-    private static readonly Color Graduations = Color.FromHex("#427276");
-    private static readonly Color Numerals = Color.FromHex("#8AB9B9");
-    private static readonly Color WaypointColor = Color.FromHex("#F3BC78");
-    private static readonly Color Phosphor = Color.FromHex("#68E4BF");
+    private static readonly Color ScopeBackground = Color.FromHex("#17212D");
+    private static readonly Color Graduations = Color.FromHex("#64768B");
+    private static readonly Color Numerals = Color.FromHex("#B9C6D5");
+    private static readonly Color WaypointColor = Color.FromHex("#EFC785");
+    private static readonly Color CursorColor = Color.FromHex("#93CAFF");
     private static readonly string[] BearingLabels = ["000", "090", "180", "270"];
-    private const int SweepSegments = 16;
-    private readonly DrawVertexUV2DColor[] _sweepVertices = new DrawVertexUV2DColor[SweepSegments + 2];
+    private static readonly Color BezelColor = Color.FromHex("#0E141D");
+    private static readonly Color HullColor = Color.FromHex("#ADB8C8");
+    private static readonly Color OwnHullColor = Color.FromHex("#79B7EA");
+    private const int RimSegments = 160;
+    private readonly Vector2[] _bezel = new Vector2[(RimSegments + 1) * 2];
+    private Vector2i _bezelSize;
+    private int _bezelRadius;
     private readonly string[] _ringLabels = new string[4];
     private int _labelRange = -1;
     private Vector2? _pointer;
@@ -28,7 +34,6 @@ public sealed partial class ShuttleNavControl
     private string _measurementText = string.Empty;
 
     public bool MassScannerDisplay { get; set; }
-    public bool ShowSweep { get; set; } = true;
 
     protected override Vector2 MidPointVector => MassScannerDisplay ? (Vector2) PixelSize / 2 : base.MidPointVector;
     protected override int ScaledMinimapRadius => MassScannerDisplay
@@ -50,7 +55,7 @@ public sealed partial class ShuttleNavControl
 
     private static Vector2 BearingDirection(float radians) => new(MathF.Sin(radians), -MathF.Cos(radians));
 
-    private void DrawMassScanner(DrawingHandleScreen handle, bool hasSignal)
+    private void DrawMassScanner(DrawingHandleScreen handle)
     {
         handle.DrawRect(PixelSizeBox, ScopeBackground);
         var center = MidPointVector;
@@ -67,61 +72,65 @@ public sealed partial class ShuttleNavControl
         {
             var ringRadius = radius * (i + 1) / 4f;
             handle.DrawCircle(center, ringRadius, Graduations.WithAlpha(i == 3 ? 0.85f : 0.46f), false);
-            var labelPos = center + BearingDirection(0.72f) * ringRadius;
+            if (i == 3)
+                continue;
+            var labelPos = center + BearingDirection(-0.65f) * ringRadius;
             handle.DrawString(Font, labelPos + new Vector2(3, 0), _ringLabels[i], UIScale * 0.8f, Numerals);
         }
 
+        handle.DrawLine(center - Vector2.UnitX * radius, center + Vector2.UnitX * radius, Graduations.WithAlpha(0.28f));
+        handle.DrawLine(center - Vector2.UnitY * radius, center + Vector2.UnitY * radius, Graduations.WithAlpha(0.28f));
+    }
+
+    private bool WithinScope(Vector2 pixel) => Vector2.DistanceSquared(pixel, MidPointVector) <= ScaledMinimapRadius * ScaledMinimapRadius;
+
+    private Vector2 ConstrainToScope(Vector2 offset, float margin)
+    {
+        var radius = Math.Max(0, ScaledMinimapRadius - margin);
+        var length = offset.Length();
+        return MidPointVector + (length > radius ? offset * (radius / length) : offset);
+    }
+
+    private static Color ScannerHullColor(Color iff) => iff == IFFComponent.IFFColor
+        ? HullColor
+        : Color.InterpolateBetween(iff, HullColor, 0.35f);
+
+    private void DrawScannerBezel(DrawingHandleScreen handle)
+    {
+        // Маска закрывает всё за окружностью одним вызовом, включая подписи, лучи выстрелов и причалы.
+        var center = MidPointVector;
+        var radius = ScaledMinimapRadius;
+        if (_bezelSize != PixelSize || _bezelRadius != radius)
+        {
+            _bezelSize = PixelSize;
+            _bezelRadius = radius;
+            var outer = center.Length() + 2;
+            for (var i = 0; i <= RimSegments; i++)
+            {
+                var dir = BearingDirection(i * MathF.Tau / RimSegments);
+                _bezel[2 * i] = center + dir * radius;
+                _bezel[2 * i + 1] = center + dir * outer;
+            }
+        }
+
+        handle.DrawPrimitives(DrawPrimitiveTopology.TriangleStrip, _bezel, BezelColor);
+        handle.DrawCircle(center, radius, Graduations, false);
         for (var i = 0; i < 72; i++)
         {
-            var direction = BearingDirection(i * MathF.Tau / 72);
-            var major = i % 6 == 0;
-            var tip = center + direction * radius;
-            handle.DrawLine(tip, tip - direction * (major ? 9 : 4) * UIScale, Graduations);
+            var dir = BearingDirection(i * MathF.Tau / 72);
+            var tip = center + dir * radius;
+            handle.DrawLine(tip, tip + dir * (i % 6 == 0 ? 7 : 3) * UIScale, Graduations);
             if (i % 18 != 0)
                 continue;
-
-            handle.DrawLine(center + direction * 8 * UIScale, tip, Graduations.WithAlpha(0.4f));
             var text = BearingLabels[i / 18];
             var dimensions = handle.GetDimensions(Font, text, UIScale * 0.85f);
-            handle.DrawString(Font, tip + direction * 15 * UIScale - dimensions / 2, text, UIScale * 0.85f, Numerals);
+            handle.DrawString(Font, tip + dir * 17 * UIScale - dimensions / 2, text, UIScale * 0.85f, Numerals);
         }
-
-        if (hasSignal && ShowSweep)
-            DrawScannerSweep(handle, center, radius);
-    }
-
-    private float SweepAngle => (float) (Timing.RealTime.TotalSeconds % 6) * MathF.Tau / 6;
-
-    private void DrawScannerEcho(DrawingHandleScreen handle, Vector2 contact, Color color)
-    {
-        var delta = contact - MidPointVector;
-        if (delta.LengthSquared() > ScaledMinimapRadius * ScaledMinimapRadius)
-            return;
-
-        var age = (SweepAngle - MathF.Atan2(delta.X, -delta.Y) + MathF.Tau) % MathF.Tau;
-        if (age < 0.8f)
-            handle.DrawCircle(contact, (6 + age * 14) * UIScale, color.WithAlpha((1 - age / 0.8f) * 0.65f), false);
-    }
-
-    private void DrawScannerSweep(DrawingHandleScreen handle, Vector2 center, float radius)
-    {
-        var angle = SweepAngle;
-        var color = Color.FromSrgb(Phosphor);
-        _sweepVertices[0] = new(center, color.WithAlpha(0.035f));
-        for (var i = 0; i <= SweepSegments; i++)
-        {
-            var progress = i / (float) SweepSegments;
-            var direction = BearingDirection(angle - (1 - progress) * 0.62f);
-            _sweepVertices[i + 1] = new(center + direction * radius, color.WithAlpha(progress * 0.17f));
-        }
-
-        handle.DrawPrimitives(DrawPrimitiveTopology.TriangleFan, Texture.White, _sweepVertices);
-        handle.DrawLine(center, _sweepVertices[^1].Position, Phosphor.WithAlpha(0.65f));
     }
 
     internal void SetScannerWaypoint(Vector2 pixel)
     {
-        if (_scannerMap != MapId.Nullspace && PixelSizeBox.Contains((Vector2i) pixel))
+        if (_scannerMap != MapId.Nullspace && WithinScope(pixel))
             _waypoint = new MapCoordinates(Vector2.Transform(pixel, _viewToMap), _scannerMap);
     }
 
@@ -156,8 +165,7 @@ public sealed partial class ShuttleNavControl
         }
 
         // Далёкая метка остаётся на краю экрана в направлении выбранной точки.
-        var bounds = Vector2.Max(Vector2.One, MidPointVector - new Vector2(9 * UIScale));
-        var end = MidPointVector + offset / Math.Max(1, Math.Max(Math.Abs(offset.X / bounds.X), Math.Abs(offset.Y / bounds.Y)));
+        var end = ConstrainToScope(offset, 8 * UIScale);
         var color = WaypointColor;
         var dx = new Vector2(6 * UIScale, 0);
         var dy = new Vector2(0, 6 * UIScale);
@@ -185,7 +193,7 @@ public sealed partial class ShuttleNavControl
 
         var end = pointer * UIScale;
         var relative = end - MidPointVector;
-        if (relative.LengthSquared() < 1)
+        if (relative.LengthSquared() < 1 || !WithinScope(end))
             return;
 
         var reading = MeasureOffset(relative);
@@ -196,11 +204,11 @@ public sealed partial class ShuttleNavControl
         }
 
         handle.DrawLine(MidPointVector, end, Numerals.WithAlpha(0.55f));
-        handle.DrawCircle(end, 5 * UIScale, Phosphor, false);
+        handle.DrawCircle(end, 5 * UIScale, CursorColor, false);
         var padding = new Vector2(4, 2) * UIScale;
         var size = handle.GetDimensions(Font, _measurementText, UIScale) + padding * 2;
-        var position = Vector2.Clamp(end + new Vector2(10) * UIScale, Vector2.Zero, Vector2.Max(Vector2.Zero, (Vector2) PixelSize - size));
+        var position = ConstrainToScope(relative + new Vector2(10) * UIScale + size / 2, size.Length() / 2 + 2) - size / 2;
         handle.DrawRect(UIBox2.FromDimensions(position, size), ScopeBackground);
-        handle.DrawString(Font, position + padding, _measurementText, UIScale, Phosphor);
+        handle.DrawString(Font, position + padding, _measurementText, UIScale, CursorColor);
     }
 }
