@@ -1,0 +1,11 @@
+fish-mass-scanner-range = Radius { $distance } m
+fish-mass-scanner-distance = { $distance } m
+fish-mass-scanner-measurement = { $distance } m · { $bearing }°
+fish-mass-scanner-labels = Labels
+fish-mass-scanner-sweep = Sweep
+fish-mass-scanner-ruler-hint = Hover to measure distance and bearing clockwise from the top of the scope. Scroll to zoom.
+fish-mass-scanner-zoom-in = Zoom in
+fish-mass-scanner-zoom-out = Zoom out
+fish-mass-scanner-waypoint = Waypoint
+fish-mass-scanner-place = Click the map to place
+fish-mass-scanner-clear = Clear

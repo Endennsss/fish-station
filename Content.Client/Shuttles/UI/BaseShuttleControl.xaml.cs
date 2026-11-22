@@ -122,9 +122,9 @@ public partial class BaseShuttleControl : MapGridControl
 
         // Check if we even have data
         // TODO: Need to prune old grid-data if we don't draw it.
-        var gridData = GridData.GetOrNew(grid.Owner);
+        var gridData = GridData.GetOrNew(grid.Owner, out var cached); // Fish-edit: строим контур при первом показе грида
 
-        if (gridData.LastBuild < grid.Comp.LastTileModifiedTick)
+        if (!cached || gridData.LastBuild < grid.Comp.LastTileModifiedTick) // Fish-edit: новый грид может иметь нулевой тик
         {
             gridData.Vertices.Clear();
             _gridTileList.Clear();

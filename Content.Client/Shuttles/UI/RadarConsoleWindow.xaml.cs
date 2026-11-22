@@ -14,7 +14,35 @@ public sealed partial class RadarConsoleWindow : FancyWindow,
     public RadarConsoleWindow()
     {
         RobustXamlLoader.Load(this);
+        // Fish-start: кнопки и колесо используют один масштаб радара
+        ClearWaypoint.OnPressed += _ => RadarScreen.ClearScannerWaypoint();
+        RadarScreen.WaypointReadingChanged += reading =>
+        {
+            WaypointReading.Text = reading ?? Loc.GetString("fish-mass-scanner-place");
+            ClearWaypoint.Disabled = reading == null;
+        };
+        Labels.OnToggled += args => RadarScreen.ShowIFF = args.Pressed;
+        Sweep.OnToggled += args => RadarScreen.ShowSweep = args.Pressed;
+        ZoomIn.OnPressed += _ => RadarScreen.AddRadarRange(-RadarScreen.WorldRange / 2);
+        ZoomOut.OnPressed += _ => RadarScreen.AddRadarRange(RadarScreen.WorldRange);
+        RadarScreen.WorldRangeChanged += UpdateRange;
+        UpdateRange(RadarScreen.WorldRange);
+        // Fish-end
     }
+
+    // Fish-start: обновляем подпись при смене отображаемой дальности
+    private int _displayedRange = -1;
+
+    private void UpdateRange(float range)
+    {
+        var meters = (int) MathF.Round(range);
+        if (_displayedRange == meters)
+            return;
+
+        _displayedRange = meters;
+        RangeLabel.Text = Loc.GetString("fish-mass-scanner-range", ("distance", meters));
+    }
+    // Fish-end
 
     public void UpdateState(NavInterfaceState scc)
     {

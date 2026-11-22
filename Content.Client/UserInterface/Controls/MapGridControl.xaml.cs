@@ -71,11 +71,11 @@ public partial class MapGridControl : LayoutContainer
 
     public Vector2 MaxRadarRangeVector => new Vector2(MaxRadarRange, MaxRadarRange);
 
-    protected Vector2 MidPointVector => new Vector2(MidPoint, MidPoint);
+    protected virtual Vector2 MidPointVector => new Vector2(MidPoint, MidPoint); // Fish-edit: центр адаптивного экрана сканера
 
     protected int MidPoint => SizeFull / 2;
     protected int SizeFull => (int) ((UIDisplayRadius + MinimapMargin) * 2 * UIScale);
-    protected int ScaledMinimapRadius => (int) (UIDisplayRadius * UIScale);
+    protected virtual int ScaledMinimapRadius => (int) (UIDisplayRadius * UIScale); // Fish-edit: радиус адаптивного экрана сканера
     protected float MinimapScale => WorldRange != 0 ? ScaledMinimapRadius / WorldRange : 0f;
 
     public event Action<float>? WorldRangeChanged;

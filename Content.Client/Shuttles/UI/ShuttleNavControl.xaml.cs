@@ -74,6 +74,11 @@ public sealed partial class ShuttleNavControl : BaseShuttleControl
     {
         base.KeyBindUp(args);
 
+        // Fish-start: щелчок по автономному сканеру ставит местную путевую метку
+        if (MassScannerDisplay && args.Function == EngineKeyFunctions.UIClick)
+            SetScannerWaypoint(args.RelativePixelPosition);
+        // Fish-end
+
         if (_coordinates == null || _rotation == null || args.Function != EngineKeyFunctions.UIClick ||
             OnRadarClick == null)
         {
@@ -134,24 +139,35 @@ public sealed partial class ShuttleNavControl : BaseShuttleControl
     {
         base.Draw(handle);
 
-        DrawBacking(handle);
-        DrawCircles(handle);
-
-        // No data
-        if (_coordinates == null || _rotation == null)
+        // Fish-start: у автономного сканера своя шкала дальности
+        if (!MassScannerDisplay)
         {
-            return;
+            DrawBacking(handle);
+            DrawCircles(handle);
         }
+        // Fish-end
 
         var xformQuery = EntManager.GetEntityQuery<TransformComponent>();
-        var fixturesQuery = EntManager.GetEntityQuery<FixturesComponent>();
-        var bodyQuery = EntManager.GetEntityQuery<PhysicsComponent>();
-
-        if (!xformQuery.TryGetComponent(_coordinates.Value.EntityId, out var xform)
+        if (_coordinates == null || _rotation == null || !xformQuery.TryGetComponent(_coordinates.Value.EntityId, out var xform)
             || xform.MapID == MapId.Nullspace)
         {
+            // Fish-start: пустой экран отличается от отсутствия сигнала
+            if (MassScannerDisplay)
+            {
+                _scannerMap = MapId.Nullspace;
+                ClearScannerWaypoint();
+                DrawMassScanner(handle, false);
+                DrawNoSignal(handle);
+            }
+            // Fish-end
             return;
         }
+
+        if (MassScannerDisplay) // Fish-edit: рисуем шкалу под контактами
+            DrawMassScanner(handle, true);
+
+        var fixturesQuery = EntManager.GetEntityQuery<FixturesComponent>();
+        var bodyQuery = EntManager.GetEntityQuery<PhysicsComponent>();
 
         var mapPos = _transform.ToMapCoordinates(_coordinates.Value);
         var posMatrix = Matrix3Helpers.CreateTransform(_coordinates.Value.Position, _rotation.Value);
@@ -278,7 +294,9 @@ public sealed partial class ShuttleNavControl : BaseShuttleControl
             if (!gridAABB.Intersects(viewAABB))
                 continue;
 
-            DrawGrid(handle, curGridToView, grid, labelColor);
+            DrawGrid(handle, curGridToView, grid, labelColor, MassScannerDisplay ? 0.16f : 0.01f); // Fish-edit: выделяем контур цели заливкой
+            if (MassScannerDisplay && ShowSweep) // Fish-edit: отметка при прохождении луча
+                DrawScannerEcho(handle, Vector2.Transform(gridBody.LocalCenter, curGridToView), labelColor);
             DrawDocks(handle, gUid, curGridToView);
         }
 
@@ -297,6 +315,13 @@ public sealed partial class ShuttleNavControl : BaseShuttleControl
             }
         }
 
+        // Fish-start: измерители привязаны к той же проекции, что и контакты
+        if (MassScannerDisplay)
+        {
+            DrawScannerWaypoint(handle, mapPos.MapId, worldToShuttle * shuttleToView);
+            DrawScannerRuler(handle);
+        }
+        // Fish-end
     }
 
     /// <summary>
